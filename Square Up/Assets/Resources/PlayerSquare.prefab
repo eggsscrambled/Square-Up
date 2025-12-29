@@ -286,7 +286,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 12
   acceleration: 200
-  friction: 50
+  friction: 100
   rotateTowardsMovement: 0
   rotateTowardsAim: 0
   rotationSpeed: 10
