@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Deagle
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: Pistol
-  fireRate: 5
-  bulletSpeed: 100
+  fireRate: 1.5
+  bulletSpeed: 150
   bulletAmount: 1
   spreadAmount: 2.5
   maxSpreadDegrees: 0
