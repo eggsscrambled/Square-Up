@@ -23,7 +23,7 @@ public class PlayerData : NetworkBehaviour
         Color.red,
         Color.blue,
         Color.green,
-        new Color(0.5f, 0f, 0.5f)
+        Color.yellow,
     };
 
     private void Awake()
