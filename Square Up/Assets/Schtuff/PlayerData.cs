@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class PlayerData : NetworkBehaviour
 {
     [Networked]
-    public int Health { get; set; }
+    public float Health { get; set; }
     [Networked]
     public NetworkBool Dead { get; set; }
     [Networked]
