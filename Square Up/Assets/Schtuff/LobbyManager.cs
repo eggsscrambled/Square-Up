@@ -36,8 +36,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
                 Input.GetAxisRaw("Vertical")
             );
 
-            inputData.jump = Input.GetButton("Jump");
-
             // Mouse aim - calculate direction from player to mouse
             if (Camera.main != null)
             {
@@ -62,6 +60,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
             inputData.fire = Input.GetButton("Fire1");
             inputData.pickup = Input.GetKeyDown(KeyCode.E);
+            inputData.dash = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space); // Dash input
         }
     }
 

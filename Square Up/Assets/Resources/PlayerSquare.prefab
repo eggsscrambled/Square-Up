@@ -160,7 +160,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7714804461317738258}
   - component: {fileID: 3468673233346948981}
-  - component: {fileID: 2623365847371195881}
   - component: {fileID: 8841829008368839461}
   - component: {fileID: 8112783526921449494}
   - component: {fileID: 7973437044663750698}
@@ -168,6 +167,7 @@ GameObject:
   - component: {fileID: 3725375924820605785}
   - component: {fileID: -5572399297541979155}
   - component: {fileID: -3703887877102232386}
+  - component: {fileID: 6947912232715599783}
   m_Layer: 7
   m_Name: PlayerSquare
   m_TagString: Player
@@ -249,52 +249,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!61 &2623365847371195881
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4824145230785826498}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 6200000, guid: 61c532a8ddfcdf1499a50e2270259fb2, type: 2}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.875, y: 0.875}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 0.875, y: 0.875}
-  m_EdgeRadius: 0
 --- !u!114 &8841829008368839461
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -330,30 +284,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 397bd6f2e84bcca46bd7ecf5f74e00e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 14
-  jumpForce: 21
-  airControl: 0.8
-  acceleration: 50
-  friction: 30
-  groundCheck: {fileID: 0}
-  groundCheckRadius: 0.2
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  wallCheck: {fileID: 0}
-  wallCheckDistance: 0.5
-  wallSlideSpeed: 2
-  wallJumpForce: 35
-  wallJumpDirection: 0.55
-  wallJumpTime: 0.2
-  maxSlopeAngle: 45
-  slopeCheckDistance: 0.6
-  slopeDownForce: 8
-  alignToSlope: 1
+  moveSpeed: 12
+  acceleration: 200
+  friction: 50
+  rotateTowardsMovement: 0
+  rotateTowardsAim: 0
   rotationSpeed: 10
-  gravity: -30
-  fallGravityMultiplier: 2
-  lowJumpMultiplier: 1.5
+  enableDash: 1
+  dashSpeed: 200
+  dashDuration: 0.1
+  dashCooldown: 1
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  collisionRadius: 0.5
 --- !u!50 &7973437044663750698
 Rigidbody2D:
   serializedVersion: 5
@@ -369,7 +313,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -450,6 +394,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6454af7bbd53cc440acc9d0a5b851aa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponAimController
+  _CurrentWeaponId:
+    Raw: 0
+--- !u!58 &6947912232715599783
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4824145230785826498}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.38
 --- !u!1 &7440366643607035886
 GameObject:
   m_ObjectHideFlags: 0

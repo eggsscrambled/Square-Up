@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: Pistol
   fireRate: 5
-  bulletSpeed: 50
+  bulletSpeed: 100
   bulletAmount: 1
   spreadAmount: 1
-  maxSpreadDegrees: 45
+  maxSpreadDegrees: 5
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   damage: 1
   knockbackForce: 5
   isAutomatic: 0
-  recoilForce: 2
+  recoilForce: 1
