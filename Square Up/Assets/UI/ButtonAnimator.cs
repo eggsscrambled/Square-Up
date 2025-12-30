@@ -80,7 +80,7 @@ public class ButtonAnimator : MonoBehaviour
     public void pressed()
     {
         InButton = false ;
-        button.transform.localScale = new Vector3(1, 1, 1);
+        button.transform.localScale = new Vector3(baseSize, baseSize, baseSize);
         audioSource.PlayOneShot(Press);
     }
 }
