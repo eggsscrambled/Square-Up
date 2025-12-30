@@ -73,5 +73,8 @@ public class NetworkedGameUIManager : NetworkBehaviour
     public void LateUpdate()
     {
         float dashProgress = localPlayer.gameObject.GetComponent<PlayerController>().GetDashCooldownProgress();
+        dashImage.fillAmount = dashProgress;
+
+        // reload ui stuff
     }
 }
