@@ -5,10 +5,12 @@ public class WeaponAimController : NetworkBehaviour
 {
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
+    [Networked] private NetworkBool lastFireState { get; set; }
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private GameManager _gameManager;
+    private bool _hasFiredThisFrame = false;
 
     public override void Spawned()
     {
@@ -18,6 +20,9 @@ public class WeaponAimController : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // Reset the flag at the start of each network tick
+        _hasFiredThisFrame = false;
+
         // 1. Resolve the weapon reference using the Networked ID
         ResolveWeaponReference();
 
@@ -40,15 +45,18 @@ public class WeaponAimController : NetworkBehaviour
             // 3. Handle Firing
             WeaponData data = _currentWeapon.GetWeaponData();
 
-            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
+            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
             {
                 // Check if weapon is automatic OR if this is a new button press
                 bool shouldFire = data.isAutomatic
                     ? input.fire
-                    : (input.fire && !input.wasFirePressedLastTick);
+                    : (input.fire && !lastFireState);
 
                 if (shouldFire)
                 {
+                    // Mark that we've fired this tick
+                    _hasFiredThisFrame = true;
+
                     // Reset Timer
                     fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
 
@@ -60,6 +68,9 @@ public class WeaponAimController : NetworkBehaviour
                     FireWeapon(aimFromWeapon, data);
                 }
             }
+
+            // Update last fire state
+            lastFireState = input.fire;
         }
     }
 
