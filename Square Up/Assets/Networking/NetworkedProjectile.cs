@@ -15,6 +15,7 @@ public class NetworkedProjectile : NetworkBehaviour
     [SerializeField] private float gravityScale = 1f;
 
     private bool _hasHit = false;
+    private SpriteRenderer _spriteRenderer;
 
     public override void Spawned()
     {
@@ -22,6 +23,28 @@ public class NetworkedProjectile : NetworkBehaviour
         if (Object.HasStateAuthority)
         {
             LifeTime = TickTimer.CreateFromSeconds(Runner, maxLifeTime);
+        }
+
+        // On clients (not state authority), disable all visuals for functional projectiles
+        if (!Object.HasStateAuthority)
+        {
+            DisableVisuals();
+        }
+    }
+
+    private void DisableVisuals()
+    {
+        // Disable sprite renderer on this object
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        if (_spriteRenderer != null)
+        {
+            _spriteRenderer.enabled = false;
+        }
+
+        // Disable all child objects (particles, trails, etc.)
+        foreach (Transform child in transform)
+        {
+            child.gameObject.SetActive(false);
         }
     }
 
@@ -100,12 +123,6 @@ public class NetworkedProjectile : NetworkBehaviour
 
             // Despawn on server
             Runner.Despawn(Object);
-        }
-        else
-        {
-            // On client, just hide it until the server despawn arrives
-            // This prevents the bullet from "staying" on screen after hitting
-            gameObject.SetActive(false);
         }
     }
 

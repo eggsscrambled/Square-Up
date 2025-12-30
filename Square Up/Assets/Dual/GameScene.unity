@@ -289,6 +289,8 @@ GameObject:
   - component: {fileID: 162073119}
   - component: {fileID: 162073118}
   - component: {fileID: 162073117}
+  - component: {fileID: 162073122}
+  - component: {fileID: 162073121}
   m_Layer: 5
   m_Name: GameUI
   m_TagString: Untagged
@@ -380,6 +382,42 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1920, y: 1079.5181}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &162073121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 162073116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 2015422494
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 162073122}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &162073122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 162073116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 641c57069cdb3c149b61c8dbbe8058f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkedGameUIManager
+  gm: {fileID: 72944947}
+  players: []
+  localPlayer: {fileID: 0}
+  gunImage: {fileID: 622308180}
+  dashImage: {fileID: 143267868}
 --- !u!1 &267637731
 GameObject:
   m_ObjectHideFlags: 0
