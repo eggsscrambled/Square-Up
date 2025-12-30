@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Fusion;
+using System.Collections.Generic;
 
 public class WeaponPickup : NetworkBehaviour
 {
@@ -20,6 +21,7 @@ public class WeaponPickup : NetworkBehaviour
     [SerializeField] private bool hideWhenHeld = true;
     [SerializeField] private bool rotateWithAim = true;
     [SerializeField] private bool flipSpriteWhenAimingLeft = true;
+    [SerializeField] private bool flipShouldFlip = false;
 
     [Networked] private NetworkBool IsPickedUp { get; set; }
     [Networked] private PlayerRef Owner { get; set; }
@@ -34,6 +36,9 @@ public class WeaponPickup : NetworkBehaviour
     private Transform ownerTransform;
     private Transform fireOrigin;
     private Vector3 originalFireOriginLocalPos;
+
+    // Track which player holds which weapon
+    private static Dictionary<PlayerRef, WeaponPickup> heldWeapons = new Dictionary<PlayerRef, WeaponPickup>();
 
     private void Awake()
     {
@@ -80,6 +85,42 @@ public class WeaponPickup : NetworkBehaviour
 
         Debug.Log($"[RPC] Pickup requested by player {player}");
         TryPickupOnServer(player);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_WeaponDropped(Vector3 position, Vector2 throwVelocity)
+    {
+        Debug.Log($"[RPC_WeaponDropped] Called on {(Object.HasStateAuthority ? "Server" : "Client")} for weapon {weaponData?.weaponID}");
+
+        // This runs on all clients to update visuals immediately
+        transform.position = position;
+        transform.rotation = Quaternion.identity;
+        startPosition = position;
+
+        if (rb != null)
+        {
+            rb.simulated = true;
+            rb.linearVelocity = throwVelocity;
+        }
+
+        if (col != null)
+        {
+            col.isTrigger = true;
+            col.enabled = true;
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;
+            spriteRenderer.flipY = false;
+        }
+
+        if (fireOrigin != null)
+        {
+            fireOrigin.localPosition = originalFireOriginLocalPos;
+        }
+
+        Debug.Log($"[RPC_WeaponDropped] Completed visual update");
     }
 
     public void TryPickup(PlayerRef player)
@@ -132,6 +173,28 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
+    public override void Render()
+    {
+        // Update visuals based on networked state
+        if (spriteRenderer != null)
+        {
+            if (hideWhenHeld)
+            {
+                spriteRenderer.enabled = !IsPickedUp;
+            }
+        }
+
+        if (col != null && !IsPickedUp)
+        {
+            col.enabled = true;
+        }
+
+        if (rb != null)
+        {
+            rb.simulated = !IsPickedUp;
+        }
+    }
+
     private void Update()
     {
         if (!IsPickedUp)
@@ -144,6 +207,13 @@ public class WeaponPickup : NetworkBehaviour
         if (IsPickedUp && flipSpriteWhenAimingLeft && spriteRenderer != null)
         {
             bool shouldFlip = AimDirection.x < 0;
+
+            // Invert the flip logic if flipShouldFlip is enabled
+            if (flipShouldFlip)
+            {
+                shouldFlip = !shouldFlip;
+            }
+
             spriteRenderer.flipY = shouldFlip;
 
             if (fireOrigin != null)
@@ -210,32 +280,21 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
-        // FIXED: Only drop the currently held weapon pickup object
-        // Don't spawn a new one - just drop the existing pickup back into the world
-        if (player.HasWeapon())
+        PlayerRef playerRef = player.Object.InputAuthority;
+
+        // Drop currently held weapon using the tracked dictionary
+        if (heldWeapons.TryGetValue(playerRef, out WeaponPickup currentWeapon) && currentWeapon != null)
         {
-            WeaponPickup currentWeapon = FindCurrentlyHeldWeapon(player);
-            if (currentWeapon != null)
-            {
-                // Drop at player position with no velocity
-                currentWeapon.Drop(player.transform.position, Vector2.zero);
-            }
-            else
-            {
-                // Fallback: if we can't find the pickup (shouldn't happen), spawn one
-                Debug.LogWarning("Couldn't find currently held weapon pickup - spawning new one");
-                WeaponData currentWeaponData = gameManager.GetWeaponData(player.WeaponIndex);
-                if (currentWeaponData != null)
-                {
-                    gameManager.SpawnDroppedWeapon(currentWeaponData, player.transform.position);
-                }
-            }
+            currentWeapon.Drop(player.transform.position, Vector2.zero);
         }
 
         player.PickupWeapon(weaponIndex + 1);
         IsPickedUp = true;
-        Owner = player.Object.InputAuthority;
+        Owner = playerRef;
         ownerTransform = player.transform;
+
+        // Track this weapon as held by this player
+        heldWeapons[playerRef] = this;
 
         WeaponAimController aimController = player.GetComponent<WeaponAimController>();
         if (aimController != null)
@@ -258,58 +317,35 @@ public class WeaponPickup : NetworkBehaviour
             spriteRenderer.enabled = false;
         }
 
-        Debug.Log($"Player {player.Object.InputAuthority} picked up {weaponData.weaponID}");
-    }
-
-    private WeaponPickup FindCurrentlyHeldWeapon(PlayerData player)
-    {
-        WeaponPickup[] allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
-        foreach (var weapon in allWeapons)
-        {
-            if (weapon.IsPickedUp && weapon.Owner == player.Object.InputAuthority)
-            {
-                return weapon;
-            }
-        }
-        return null;
+        Debug.Log($"Player {playerRef} picked up {weaponData.weaponID}");
     }
 
     public void Drop(Vector3 position, Vector2 throwVelocity)
     {
         if (!Object.HasStateAuthority)
+        {
+            Debug.LogWarning($"[Drop] Called without state authority on {gameObject.name}");
             return;
+        }
+
+        Debug.Log($"[Drop] Dropping weapon {weaponData?.weaponID} from owner {Owner}");
+
+        // Remove from tracking dictionary
+        if (Owner != PlayerRef.None)
+        {
+            heldWeapons.Remove(Owner);
+            Debug.Log($"[Drop] Removed {Owner} from heldWeapons dictionary");
+        }
 
         IsPickedUp = false;
         Owner = PlayerRef.None;
         ownerTransform = null;
 
         transform.SetParent(originalParent);
-        transform.position = position;
-        transform.rotation = Quaternion.identity;
-        startPosition = position;
 
-        if (rb != null)
-        {
-            rb.simulated = true;
-            rb.linearVelocity = throwVelocity;
-        }
-
-        if (col != null)
-        {
-            col.isTrigger = true;
-            col.enabled = true;
-        }
-
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.enabled = true;
-            spriteRenderer.flipY = false;
-        }
-
-        if (fireOrigin != null)
-        {
-            fireOrigin.localPosition = originalFireOriginLocalPos;
-        }
+        Debug.Log($"[Drop] Calling RPC_WeaponDropped at position {position}");
+        // Call RPC to update all clients immediately
+        RPC_WeaponDropped(position, throwVelocity);
     }
 
     public WeaponData GetWeaponData()
@@ -336,6 +372,16 @@ public class WeaponPickup : NetworkBehaviour
     public bool GetIsPickedUp()
     {
         return IsPickedUp;
+    }
+
+    // Public static method to get a player's held weapon
+    public static WeaponPickup GetHeldWeapon(PlayerRef player)
+    {
+        if (heldWeapons.TryGetValue(player, out WeaponPickup weapon))
+        {
+            return weapon;
+        }
+        return null;
     }
 
     private void OnDrawGizmosSelected()

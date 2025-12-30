@@ -5,10 +5,8 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 {
     [SerializeField] private float pickupCheckRadius = 2f;
     [SerializeField] private float pickupCooldown = 0.3f; // Cooldown between pickups
-
     private PlayerData playerData;
     private WeaponPickup[] allWeapons;
-
     [Networked] private TickTimer PickupCooldownTimer { get; set; }
     private bool wasPickupPressed = false; // Track previous frame state
 
@@ -80,13 +78,68 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         {
             Debug.Log($"[Client {Object.InputAuthority}] Trying to pickup weapon at distance {closestDistance}");
             closestWeapon.TryPickup(Object.InputAuthority);
-
             // Start cooldown timer
             PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
         }
         else
         {
-            Debug.Log($"[Client {Object.InputAuthority}] No weapons in range");
+            // No weapons nearby - try to drop current weapon if we have one
+            if (playerData != null && playerData.HasWeapon())
+            {
+                Debug.Log($"[Client {Object.InputAuthority}] No weapons in range - dropping current weapon");
+                RPC_RequestDropCurrentWeapon(Object.InputAuthority);
+                // Start cooldown timer
+                PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
+            }
+            else
+            {
+                Debug.Log($"[Client {Object.InputAuthority}] No weapons in range and no weapon to drop");
+            }
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDropCurrentWeapon(PlayerRef playerRef, RpcInfo info = default)
+    {
+        // Verify the source matches the player trying to drop
+        if (info.Source != playerRef && info.Source != PlayerRef.None)
+        {
+            Debug.LogWarning($"[Server] Player {info.Source} tried to drop for player {playerRef} - rejected");
+            return;
+        }
+
+        Debug.Log($"[Server] RPC_RequestDropCurrentWeapon called for player {playerRef}");
+
+        // Find the weapon this player is holding
+        WeaponPickup heldWeapon = WeaponPickup.GetHeldWeapon(playerRef);
+        if (heldWeapon != null)
+        {
+            Debug.Log($"[Server] Found held weapon: {heldWeapon.GetWeaponData().weaponID}");
+
+            Vector3 dropPosition = transform.position;
+            Vector2 dropVelocity = new Vector2(Random.Range(-2f, 2f), Random.Range(2f, 4f));
+
+            // Clear aim controller reference first
+            WeaponAimController aimController = GetComponent<WeaponAimController>();
+            if (aimController != null)
+            {
+                aimController.SetCurrentWeapon(null);
+            }
+
+            // Drop the weapon
+            heldWeapon.Drop(dropPosition, dropVelocity);
+
+            // Clear player's weapon index
+            if (playerData != null)
+            {
+                playerData.PickupWeapon(0); // Set weapon index to 0 (no weapon)
+            }
+
+            Debug.Log($"[Server] Player {playerRef} dropped their weapon");
+        }
+        else
+        {
+            Debug.LogWarning($"[Server] No held weapon found for player {playerRef}");
         }
     }
 
