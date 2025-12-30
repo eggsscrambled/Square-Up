@@ -205,7 +205,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponPickup
   weaponData: {fileID: 11400000, guid: c861993e121738741b73d355824e63a6, type: 2}
-  pickupRadius: 1
+  pickupRadius: 2
   playerLayer:
     serializedVersion: 2
     m_Bits: 128
@@ -213,7 +213,7 @@ MonoBehaviour:
   spriteRenderer: {fileID: 3878881182133981315}
   floatSpeed: 1
   floatAmount: 0.3
-  orbitRadius: 1.5
+  orbitRadius: 0.6
   verticalOffset: -0.3
   hideWhenHeld: 0
   rotateWithAim: 1

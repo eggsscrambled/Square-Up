@@ -205,7 +205,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponPickup
   weaponData: {fileID: 11400000, guid: e5197d0ac58de50488fabfb72f312bba, type: 2}
-  pickupRadius: 1
+  pickupRadius: 2
   playerLayer:
     serializedVersion: 2
     m_Bits: 128

@@ -90,6 +90,8 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_WeaponDropped(Vector3 position, Vector2 throwVelocity)
     {
+        Debug.Log($"[RPC_WeaponDropped] Called on {(Object.HasStateAuthority ? "Server" : "Client")} for weapon {weaponData?.weaponID}");
+
         // This runs on all clients to update visuals immediately
         transform.position = position;
         transform.rotation = Quaternion.identity;
@@ -117,6 +119,8 @@ public class WeaponPickup : NetworkBehaviour
         {
             fireOrigin.localPosition = originalFireOriginLocalPos;
         }
+
+        Debug.Log($"[RPC_WeaponDropped] Completed visual update");
     }
 
     public void TryPickup(PlayerRef player)
@@ -319,12 +323,18 @@ public class WeaponPickup : NetworkBehaviour
     public void Drop(Vector3 position, Vector2 throwVelocity)
     {
         if (!Object.HasStateAuthority)
+        {
+            Debug.LogWarning($"[Drop] Called without state authority on {gameObject.name}");
             return;
+        }
+
+        Debug.Log($"[Drop] Dropping weapon {weaponData?.weaponID} from owner {Owner}");
 
         // Remove from tracking dictionary
         if (Owner != PlayerRef.None)
         {
             heldWeapons.Remove(Owner);
+            Debug.Log($"[Drop] Removed {Owner} from heldWeapons dictionary");
         }
 
         IsPickedUp = false;
@@ -333,6 +343,7 @@ public class WeaponPickup : NetworkBehaviour
 
         transform.SetParent(originalParent);
 
+        Debug.Log($"[Drop] Calling RPC_WeaponDropped at position {position}");
         // Call RPC to update all clients immediately
         RPC_WeaponDropped(position, throwVelocity);
     }
@@ -361,6 +372,16 @@ public class WeaponPickup : NetworkBehaviour
     public bool GetIsPickedUp()
     {
         return IsPickedUp;
+    }
+
+    // Public static method to get a player's held weapon
+    public static WeaponPickup GetHeldWeapon(PlayerRef player)
+    {
+        if (heldWeapons.TryGetValue(player, out WeaponPickup weapon))
+        {
+            return weapon;
+        }
+        return null;
     }
 
     private void OnDrawGizmosSelected()
