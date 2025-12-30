@@ -30,7 +30,11 @@ public class WeaponAimController : NetworkBehaviour
             // Update Aim (State Authority handles the actual rotation)
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
-                _currentWeapon.UpdateAimDirection(input.aimDirection);
+                // FIXED: Calculate aim direction from weapon's actual hold position
+                Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
+                Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+
+                _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
             // 3. Handle Firing
@@ -48,8 +52,12 @@ public class WeaponAimController : NetworkBehaviour
                     // Reset Timer
                     fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
 
+                    // FIXED: Pass the corrected aim direction
+                    Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
+                    Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+
                     // Execute Fire Logic
-                    FireWeapon(input.aimDirection, data);
+                    FireWeapon(aimFromWeapon, data);
                 }
             }
         }
@@ -127,7 +135,7 @@ public class WeaponAimController : NetworkBehaviour
         if (Object.HasStateAuthority)
         {
             _currentWeapon = null;
-            CurrentWeaponId = default; // Replaces .None
+            CurrentWeaponId = default;
         }
     }
 }

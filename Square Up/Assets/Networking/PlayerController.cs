@@ -6,8 +6,9 @@ public struct NetworkInputData : INetworkInput
 {
     public Vector2 movementInput;
     public Vector2 aimDirection;
+    public Vector2 mouseWorldPosition; // NEW: Add mouse world position
     public NetworkBool fire;
-    public NetworkBool wasFirePressedLastTick; // Add this
+    public NetworkBool wasFirePressedLastTick;
     public NetworkBool pickup;
     public NetworkBool dash;
 }

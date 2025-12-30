@@ -18,7 +18,7 @@ MonoBehaviour:
   bulletAmount: 1
   spreadAmount: 2.5
   maxSpreadDegrees: 5
-  bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
+  bulletPrefab: {fileID: 7754371058564287661, guid: a2e00fa726a6fb2448ec4264d356918a, type: 3}
   damage: 35
   knockbackForce: 45
   isAutomatic: 0
