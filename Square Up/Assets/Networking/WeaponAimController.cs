@@ -78,9 +78,6 @@ public class WeaponAimController : NetworkBehaviour
                         // Mark that we've fired this tick
                         _hasFiredThisFrame = true;
 
-                        // Increment our local counter (will be synced when server responds)
-                        _lastProcessedFireCounter++;
-
                         // Set client-side cooldown immediately (prevents firing again before server confirms)
                         // Add a small buffer to account for network timing
                         _clientFireCooldown = (1f / data.fireRate) + 0.05f;
@@ -89,6 +86,14 @@ public class WeaponAimController : NetworkBehaviour
                         if (Object.HasStateAuthority)
                         {
                             fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+                            // Host increments counter directly since it has authority
+                            fireCounter++;
+                            _lastProcessedFireCounter = fireCounter;
+                        }
+                        else
+                        {
+                            // Client increments local counter (will be synced when server responds)
+                            _lastProcessedFireCounter++;
                         }
 
                         // Calculate aim direction
