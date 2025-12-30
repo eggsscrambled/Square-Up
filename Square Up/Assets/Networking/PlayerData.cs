@@ -24,6 +24,13 @@ public class PlayerData : NetworkBehaviour
         Color.blue,
         Color.green,
         Color.yellow,
+        Color.pink,
+        Color.purple,
+        Color.orange,
+        Color.cyan,
+        Color.black,
+        Color.white,
+
     };
 
     private void Awake()
