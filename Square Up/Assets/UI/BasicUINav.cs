@@ -10,4 +10,9 @@ public class BasicUINav : MonoBehaviour
         oldPanel.SetActive(false);
         newPanel.SetActive(true);
     }
+
+    public void QuitGame()
+    {
+        Application.Quit();
+    }
 }
