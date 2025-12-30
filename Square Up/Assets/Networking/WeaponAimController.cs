@@ -42,35 +42,45 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            // 3. Handle Firing
-            WeaponData data = _currentWeapon.GetWeaponData();
-
-            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
+            // 3. Handle Firing - ONLY Input Authority initiates fire
+            // This prevents double-firing when server also processes the replicated input
+            if (Object.HasInputAuthority)
             {
-                // Check if weapon is automatic OR if this is a new button press
-                bool shouldFire = data.isAutomatic
-                    ? input.fire
-                    : (input.fire && !lastFireState);
+                WeaponData data = _currentWeapon.GetWeaponData();
 
-                if (shouldFire)
+                if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
                 {
-                    // Mark that we've fired this tick
-                    _hasFiredThisFrame = true;
+                    // Check if weapon is automatic OR if this is a new button press
+                    bool shouldFire = data.isAutomatic
+                        ? input.fire
+                        : (input.fire && !lastFireState);
 
-                    // Reset Timer
-                    fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+                    if (shouldFire)
+                    {
+                        // Mark that we've fired this tick
+                        _hasFiredThisFrame = true;
 
-                    // Calculate aim direction
-                    Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
-                    Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+                        // Reset Timer (must be done on State Authority)
+                        if (Object.HasStateAuthority)
+                        {
+                            fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+                        }
 
-                    // Execute Fire Logic
-                    FireWeapon(aimFromWeapon, data);
+                        // Calculate aim direction
+                        Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
+                        Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+
+                        // Execute Fire Logic
+                        FireWeapon(aimFromWeapon, data);
+                    }
+                }
+
+                // Update last fire state
+                if (Object.HasStateAuthority)
+                {
+                    lastFireState = input.fire;
                 }
             }
-
-            // Update last fire state
-            lastFireState = input.fire;
         }
     }
 
@@ -81,8 +91,7 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // FIXED: Only the server spawns functional projectiles
-        // Clients send an RPC request to the server
+        // Host/Server with Input Authority can spawn directly
         if (Object.HasStateAuthority)
         {
             // Server spawns functional projectiles
@@ -165,6 +174,9 @@ public class WeaponAimController : NetworkBehaviour
         WeaponData weaponData = _currentWeapon.GetWeaponData();
         if (weaponData == null) return;
 
+        // Reset fire rate timer on server
+        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
+
         // Server spawns the functional projectiles
         SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
 
@@ -221,4 +233,3 @@ public class WeaponAimController : NetworkBehaviour
         }
     }
 }
-
