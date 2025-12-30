@@ -14,6 +14,10 @@ public class NetworkedProjectile : NetworkBehaviour
     [SerializeField] private bool useGravity = false;
     [SerializeField] private float gravityScale = 1f;
 
+    public LayerMask GetHitLayers() => hitLayers;
+    public bool GetUseGravity() => useGravity;
+    public float GetGravityScale() => gravityScale;
+
     private bool _hasHit = false;
     private SpriteRenderer _spriteRenderer;
 

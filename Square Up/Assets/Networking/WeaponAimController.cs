@@ -6,16 +6,15 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
     [Networked] private NetworkBool lastFireState { get; set; }
-    [Networked] private int fireCounter { get; set; } // Track fire events to prevent doubles
+    [Networked] private int fireCounter { get; set; }
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private GameManager _gameManager;
     private bool _hasFiredThisFrame = false;
 
-    // Client-side prediction timer to prevent rapid firing before server confirms
     private float _clientFireCooldown = 0f;
-    private int _lastProcessedFireCounter = 0; // Track last fire event we processed
+    private int _lastProcessedFireCounter = 0;
 
     public override void Spawned()
     {
@@ -25,87 +24,65 @@ public class WeaponAimController : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Reset the flag at the start of each network tick
         _hasFiredThisFrame = false;
 
-        // Decrement client cooldown
         if (_clientFireCooldown > 0)
         {
             _clientFireCooldown -= Runner.DeltaTime;
         }
 
-        // 1. Resolve the weapon reference using the Networked ID
         ResolveWeaponReference();
 
         if (_currentWeapon == null || _playerData == null || _playerData.Dead)
             return;
 
-        // 2. Get Input (Standard Fusion Pattern)
         if (GetInput(out NetworkInputData input))
         {
-            // Update Aim (State Authority handles the actual rotation)
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
-                // Calculate aim direction from weapon's actual hold position
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
                 Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
-
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            // 3. Handle Firing - ONLY Input Authority initiates fire
-            // This prevents double-firing when server also processes the replicated input
             if (Object.HasInputAuthority)
             {
                 WeaponData data = _currentWeapon.GetWeaponData();
 
-                // Check both networked timer AND client-side cooldown
-                // ALSO check that we haven't already processed this fire counter
                 bool canFire = fireRateTimer.ExpiredOrNotRunning(Runner) &&
                                _clientFireCooldown <= 0 &&
                                !_hasFiredThisFrame &&
-                               fireCounter == _lastProcessedFireCounter; // Prevent processing same fire twice
+                               fireCounter == _lastProcessedFireCounter;
 
                 if (data != null && canFire)
                 {
-                    // Check if weapon is automatic OR if this is a new button press
                     bool shouldFire = data.isAutomatic
                         ? input.fire
                         : (input.fire && !lastFireState);
 
                     if (shouldFire)
                     {
-                        // Mark that we've fired this tick
                         _hasFiredThisFrame = true;
-
-                        // Set client-side cooldown immediately (prevents firing again before server confirms)
-                        // Add a small buffer to account for network timing
                         _clientFireCooldown = (1f / data.fireRate) + 0.05f;
 
-                        // Reset Timer (must be done on State Authority)
                         if (Object.HasStateAuthority)
                         {
                             fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
-                            // Host increments counter directly since it has authority
                             fireCounter++;
                             _lastProcessedFireCounter = fireCounter;
                         }
                         else
                         {
-                            // Client increments local counter (will be synced when server responds)
                             _lastProcessedFireCounter++;
                         }
 
-                        // Calculate aim direction
                         Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
                         Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
 
-                        // Execute Fire Logic
                         FireWeapon(aimFromWeapon, data);
                     }
                 }
 
-                // Update last fire state
                 if (Object.HasStateAuthority)
                 {
                     lastFireState = input.fire;
@@ -121,20 +98,32 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // Host/Server with Input Authority can spawn directly
         if (Object.HasStateAuthority)
         {
-            // Server spawns functional projectiles
             SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
 
-            // Tell all clients (including host) to spawn visual projectiles
-            RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
-                _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
-                weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            // Get projectile settings from the bullet prefab using getter methods
+            NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
+            int hitLayersMask = projSettings != null ? projSettings.GetHitLayers() : Physics2D.AllLayers;
+            bool useGravity = projSettings != null && projSettings.GetUseGravity();
+            float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
+
+            RPC_SpawnVisualProjectiles(
+                aimDirection,
+                spawnPos,
+                weaponData.bulletAmount,
+                _currentWeapon.Object.Id,
+                weaponData.bulletSpeed,
+                weaponData.bulletLifetime,
+                weaponData.spreadAmount,
+                weaponData.maxSpreadDegrees,
+                hitLayersMask,
+                useGravity,
+                gravityScale
+            );
         }
         else
         {
-            // Client requests server to fire
             RPC_RequestFireWeapon(aimDirection, spawnPos);
         }
     }
@@ -161,9 +150,19 @@ public class WeaponAimController : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_SpawnVisualProjectiles(Vector2 aimDirection, Vector3 spawnPos, int bulletAmount, NetworkId weaponId, float bulletSpeed, float bulletLifetime, float spreadAmount, float maxSpread)
+    private void RPC_SpawnVisualProjectiles(
+        Vector2 aimDirection,
+        Vector3 spawnPos,
+        int bulletAmount,
+        NetworkId weaponId,
+        float bulletSpeed,
+        float bulletLifetime,
+        float spreadAmount,
+        float maxSpread,
+        int hitLayersMask,      // Changed to int for RPC compatibility
+        bool useGravity,
+        float gravityScale)
     {
-        // Resolve weapon reference if needed
         WeaponPickup weapon = _currentWeapon;
         if (weapon == null || weapon.Object.Id != weaponId)
         {
@@ -178,6 +177,9 @@ public class WeaponAimController : NetworkBehaviour
         WeaponData weaponData = weapon.GetWeaponData();
         if (weaponData == null) return;
 
+        // Convert int back to LayerMask
+        LayerMask hitLayers = hitLayersMask;
+
         for (int i = 0; i < bulletAmount; i++)
         {
             Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, spreadAmount, maxSpread);
@@ -189,9 +191,8 @@ public class WeaponAimController : NetworkBehaviour
                 spawnRotation
             );
 
-            // Set up the visual projectile to self-destruct
             VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-            visualComp.Initialize(weaponData, direction, bulletLifetime);
+            visualComp.Initialize(weaponData, direction, bulletLifetime, hitLayers, useGravity, gravityScale);
         }
     }
 
@@ -204,24 +205,34 @@ public class WeaponAimController : NetworkBehaviour
         WeaponData weaponData = _currentWeapon.GetWeaponData();
         if (weaponData == null) return;
 
-        // Reset fire rate timer on server
         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
-
-        // Increment fire counter on server (this will replicate back to client)
         fireCounter++;
 
-        // Server spawns the functional projectiles
         SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
 
-        // Tell all clients to spawn visual projectiles (including the client who requested)
-        RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
-            _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
-            weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+        // Get projectile settings from the bullet prefab using getter methods
+        NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
+        int hitLayersMask = projSettings != null ? projSettings.GetHitLayers() : Physics2D.AllLayers;
+        bool useGravity = projSettings != null && projSettings.GetUseGravity();
+        float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
+
+        RPC_SpawnVisualProjectiles(
+            aimDirection,
+            spawnPos,
+            weaponData.bulletAmount,
+            _currentWeapon.Object.Id,
+            weaponData.bulletSpeed,
+            weaponData.bulletLifetime,
+            weaponData.spreadAmount,
+            weaponData.maxSpreadDegrees,
+            hitLayersMask,
+            useGravity,
+            gravityScale
+        );
     }
 
     private void ResolveWeaponReference()
     {
-        // If our local reference doesn't match our networked ID, find it once
         if (CurrentWeaponId != default && (_currentWeapon == null || _currentWeapon.Object.Id != CurrentWeaponId))
         {
             if (Runner.TryFindObject(CurrentWeaponId, out NetworkObject weaponObj))
