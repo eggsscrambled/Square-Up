@@ -1,4 +1,3 @@
-// Simple visual-only projectile for client-side prediction
 using UnityEngine;
 
 public class VisualProjectile : MonoBehaviour
@@ -16,16 +15,21 @@ public class VisualProjectile : MonoBehaviour
         _lifetime = lifetime;
         _elapsedTime = 0f;
 
-        // Match the gravity settings from the networked projectile prefab
-        // You may need to expose these in WeaponData if they vary per weapon
-        _hitLayers = LayerMask.GetMask("Default", "Player", "Obstacles"); // Adjust layer names as needed
+        // Try to get the mask, with fallback
+        _hitLayers = LayerMask.GetMask("Default", "Player", "Obstacles");
+
+        // Debug to verify layers exist
+        if (_hitLayers == 0)
+        {
+            Debug.LogWarning("VisualProjectile: No valid layers found! Using Everything mask.");
+            _hitLayers = ~0; // Everything
+        }
     }
 
     private void Update()
     {
         _elapsedTime += Time.deltaTime;
 
-        // Self-destruct after lifetime
         if (_elapsedTime >= _lifetime)
         {
             Destroy(gameObject);
@@ -40,19 +44,21 @@ public class VisualProjectile : MonoBehaviour
         }
 
         Vector2 movement = _velocity * Time.deltaTime;
+        Vector2 startPos = transform.position;
 
-        // Check for collisions
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, movement.normalized, movement.magnitude, _hitLayers);
+        // Check for collisions BEFORE moving
+        RaycastHit2D hit = Physics2D.Raycast(startPos, movement.normalized, movement.magnitude, _hitLayers);
 
         if (hit.collider != null)
         {
-            // Hit something, destroy visual projectile
+            // Move to hit point, then destroy
+            transform.position = hit.point;
             Destroy(gameObject);
             return;
         }
 
-        // Move projectile
-        transform.position += (Vector3)movement;
+        // No collision, move projectile
+        transform.position = startPos + movement;
 
         // Rotate to face direction
         if (_velocity != Vector2.zero)
