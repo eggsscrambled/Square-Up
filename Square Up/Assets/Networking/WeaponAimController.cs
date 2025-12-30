@@ -98,9 +98,16 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
+        // Pre-calculate all bullet directions so networked and visual use the same spread
+        Vector2[] bulletDirections = new Vector2[weaponData.bulletAmount];
+        for (int i = 0; i < weaponData.bulletAmount; i++)
+        {
+            bulletDirections[i] = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+        }
+
         if (Object.HasStateAuthority)
         {
-            SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
+            SpawnFunctionalProjectiles(spawnPos, weaponData, bulletDirections);
 
             // Get projectile settings from the bullet prefab using getter methods
             NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
@@ -109,14 +116,12 @@ public class WeaponAimController : NetworkBehaviour
             float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
 
             RPC_SpawnVisualProjectiles(
-                aimDirection,
+                bulletDirections,
                 spawnPos,
                 weaponData.bulletAmount,
                 _currentWeapon.Object.Id,
                 weaponData.bulletSpeed,
                 weaponData.bulletLifetime,
-                weaponData.spreadAmount,
-                weaponData.maxSpreadDegrees,
                 hitLayersMask,
                 useGravity,
                 gravityScale
@@ -124,15 +129,15 @@ public class WeaponAimController : NetworkBehaviour
         }
         else
         {
-            RPC_RequestFireWeapon(aimDirection, spawnPos);
+            RPC_RequestFireWeapon(bulletDirections, spawnPos);
         }
     }
 
-    private void SpawnFunctionalProjectiles(Vector2 aimDirection, Vector3 spawnPos, WeaponData weaponData)
+    private void SpawnFunctionalProjectiles(Vector3 spawnPos, WeaponData weaponData, Vector2[] directions)
     {
-        for (int i = 0; i < weaponData.bulletAmount; i++)
+        for (int i = 0; i < directions.Length; i++)
         {
-            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            Vector2 direction = directions[i];
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
 
             NetworkObject projectile = Runner.Spawn(
@@ -151,15 +156,13 @@ public class WeaponAimController : NetworkBehaviour
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SpawnVisualProjectiles(
-        Vector2 aimDirection,
+        Vector2[] bulletDirections,
         Vector3 spawnPos,
         int bulletAmount,
         NetworkId weaponId,
         float bulletSpeed,
         float bulletLifetime,
-        float spreadAmount,
-        float maxSpread,
-        int hitLayersMask,      // Changed to int for RPC compatibility
+        int hitLayersMask,
         bool useGravity,
         float gravityScale)
     {
@@ -180,9 +183,9 @@ public class WeaponAimController : NetworkBehaviour
         // Convert int back to LayerMask
         LayerMask hitLayers = hitLayersMask;
 
-        for (int i = 0; i < bulletAmount; i++)
+        for (int i = 0; i < bulletDirections.Length; i++)
         {
-            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, spreadAmount, maxSpread);
+            Vector2 direction = bulletDirections[i];
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
 
             GameObject visualProjectile = Instantiate(
@@ -197,7 +200,7 @@ public class WeaponAimController : NetworkBehaviour
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_RequestFireWeapon(Vector2 aimDirection, Vector3 spawnPos)
+    private void RPC_RequestFireWeapon(Vector2[] bulletDirections, Vector3 spawnPos)
     {
         if (_currentWeapon == null || _playerData == null || _playerData.Dead)
             return;
@@ -208,7 +211,7 @@ public class WeaponAimController : NetworkBehaviour
         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
         fireCounter++;
 
-        SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
+        SpawnFunctionalProjectiles(spawnPos, weaponData, bulletDirections);
 
         // Get projectile settings from the bullet prefab using getter methods
         NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
@@ -217,14 +220,12 @@ public class WeaponAimController : NetworkBehaviour
         float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
 
         RPC_SpawnVisualProjectiles(
-            aimDirection,
+            bulletDirections,
             spawnPos,
             weaponData.bulletAmount,
             _currentWeapon.Object.Id,
             weaponData.bulletSpeed,
             weaponData.bulletLifetime,
-            weaponData.spreadAmount,
-            weaponData.maxSpreadDegrees,
             hitLayersMask,
             useGravity,
             gravityScale
