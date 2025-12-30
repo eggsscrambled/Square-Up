@@ -6,6 +6,7 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
     [Networked] private NetworkBool lastFireState { get; set; }
+    [Networked] private int fireCounter { get; set; } // Track fire events to prevent doubles
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
@@ -14,6 +15,7 @@ public class WeaponAimController : NetworkBehaviour
 
     // Client-side prediction timer to prevent rapid firing before server confirms
     private float _clientFireCooldown = 0f;
+    private int _lastProcessedFireCounter = 0; // Track last fire event we processed
 
     public override void Spawned()
     {
@@ -58,9 +60,11 @@ public class WeaponAimController : NetworkBehaviour
                 WeaponData data = _currentWeapon.GetWeaponData();
 
                 // Check both networked timer AND client-side cooldown
+                // ALSO check that we haven't already processed this fire counter
                 bool canFire = fireRateTimer.ExpiredOrNotRunning(Runner) &&
                                _clientFireCooldown <= 0 &&
-                               !_hasFiredThisFrame;
+                               !_hasFiredThisFrame &&
+                               fireCounter == _lastProcessedFireCounter; // Prevent processing same fire twice
 
                 if (data != null && canFire)
                 {
@@ -74,8 +78,12 @@ public class WeaponAimController : NetworkBehaviour
                         // Mark that we've fired this tick
                         _hasFiredThisFrame = true;
 
+                        // Increment our local counter (will be synced when server responds)
+                        _lastProcessedFireCounter++;
+
                         // Set client-side cooldown immediately (prevents firing again before server confirms)
-                        _clientFireCooldown = 1f / data.fireRate;
+                        // Add a small buffer to account for network timing
+                        _clientFireCooldown = (1f / data.fireRate) + 0.05f;
 
                         // Reset Timer (must be done on State Authority)
                         if (Object.HasStateAuthority)
@@ -193,6 +201,9 @@ public class WeaponAimController : NetworkBehaviour
 
         // Reset fire rate timer on server
         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
+
+        // Increment fire counter on server (this will replicate back to client)
+        fireCounter++;
 
         // Server spawns the functional projectiles
         SpawnFunctionalProjectiles(aimDirection, spawnPos, weaponData);
