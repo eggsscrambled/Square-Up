@@ -81,7 +81,27 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // Server: Spawn functional projectiles (will be invisible on clients)
+        // EVERYONE with input authority spawns local visual projectiles for instant feedback
+        if (Object.HasInputAuthority)
+        {
+            for (int i = 0; i < weaponData.bulletAmount; i++)
+            {
+                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+                GameObject visualProjectile = Instantiate(
+                    weaponData.bulletPrefab.gameObject,
+                    spawnPos,
+                    spawnRotation
+                );
+
+                // Set up the visual projectile to self-destruct
+                VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
+                visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
+            }
+        }
+
+        // Server: Spawn functional projectiles (always invisible)
         if (Object.HasStateAuthority)
         {
             for (int i = 0; i < weaponData.bulletAmount; i++)
@@ -102,28 +122,10 @@ public class WeaponAimController : NetworkBehaviour
                 }
             }
         }
-        // Client: Request server to spawn functional + spawn local visual projectiles
-        else if (Object.HasInputAuthority)
+        // Client: Request server to spawn functional projectiles
+        else
         {
-            // Request server to spawn functional projectiles (will be invisible on this client)
             RPC_RequestFireWeapon(aimDirection, spawnPos);
-
-            // Immediately spawn LOCAL visual-only projectiles for instant feedback
-            for (int i = 0; i < weaponData.bulletAmount; i++)
-            {
-                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-                GameObject visualProjectile = Instantiate(
-                    weaponData.bulletPrefab.gameObject,
-                    spawnPos,
-                    spawnRotation
-                );
-
-                // Set up the visual projectile to self-destruct
-                VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-                visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
-            }
         }
     }
 

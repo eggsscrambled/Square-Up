@@ -25,11 +25,8 @@ public class NetworkedProjectile : NetworkBehaviour
             LifeTime = TickTimer.CreateFromSeconds(Runner, maxLifeTime);
         }
 
-        // On clients (not state authority), disable all visuals for functional projectiles
-        if (!Object.HasStateAuthority)
-        {
-            DisableVisuals();
-        }
+        // Functional projectiles are ALWAYS invisible (they're server-authoritative hitboxes only)
+        DisableVisuals();
     }
 
     private void DisableVisuals()
