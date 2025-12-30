@@ -70,7 +70,8 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        if (Object.HasStateAuthority)
+        // CHANGED: Spawn on both State Authority (server) AND Input Authority (client)
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
         {
             for (int i = 0; i < weaponData.bulletAmount; i++)
             {
