@@ -70,8 +70,8 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // CHANGED: Spawn on both State Authority (server) AND Input Authority (client)
-        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        // Server: Spawn functional projectiles (will be invisible on clients)
+        if (Object.HasStateAuthority)
         {
             for (int i = 0; i < weaponData.bulletAmount; i++)
             {
@@ -89,6 +89,58 @@ public class WeaponAimController : NetworkBehaviour
                 {
                     proj.Initialize(weaponData, direction, Object.InputAuthority);
                 }
+            }
+        }
+        // Client: Request server to spawn functional + spawn local visual projectiles
+        else if (Object.HasInputAuthority)
+        {
+            // Request server to spawn functional projectiles (will be invisible on this client)
+            RPC_RequestFireWeapon(aimDirection, spawnPos);
+
+            // Immediately spawn LOCAL visual-only projectiles for instant feedback
+            for (int i = 0; i < weaponData.bulletAmount; i++)
+            {
+                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+                GameObject visualProjectile = Instantiate(
+                    weaponData.bulletPrefab.gameObject,
+                    spawnPos,
+                    spawnRotation
+                );
+
+                // Set up the visual projectile to self-destruct
+                VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
+                visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
+            }
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestFireWeapon(Vector2 aimDirection, Vector3 spawnPos)
+    {
+        if (_currentWeapon == null || _playerData == null || _playerData.Dead)
+            return;
+
+        WeaponData weaponData = _currentWeapon.GetWeaponData();
+        if (weaponData == null) return;
+
+        // Server spawns the functional projectiles
+        for (int i = 0; i < weaponData.bulletAmount; i++)
+        {
+            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+            NetworkObject projectile = Runner.Spawn(
+                weaponData.bulletPrefab,
+                spawnPos,
+                spawnRotation,
+                Object.InputAuthority
+            );
+
+            if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
+            {
+                proj.Initialize(weaponData, direction, Object.InputAuthority);
             }
         }
     }
@@ -137,6 +189,43 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = null;
             CurrentWeaponId = default;
+        }
+    }
+}
+
+// Simple visual-only projectile for client-side prediction
+public class VisualProjectile : MonoBehaviour
+{
+    private Vector2 _velocity;
+    private float _lifetime;
+    private float _elapsedTime;
+
+    public void Initialize(WeaponData weaponData, Vector2 direction, float lifetime)
+    {
+        _velocity = direction.normalized * weaponData.bulletSpeed;
+        _lifetime = lifetime;
+        _elapsedTime = 0f;
+    }
+
+    private void Update()
+    {
+        _elapsedTime += Time.deltaTime;
+
+        // Self-destruct after lifetime
+        if (_elapsedTime >= _lifetime)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        // Simple movement
+        transform.position += (Vector3)_velocity * Time.deltaTime;
+
+        // Rotate to face direction
+        if (_velocity != Vector2.zero)
+        {
+            float angle = Mathf.Atan2(_velocity.y, _velocity.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
     }
 }
