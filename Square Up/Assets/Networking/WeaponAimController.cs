@@ -42,35 +42,38 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            // 3. Handle Firing
-            WeaponData data = _currentWeapon.GetWeaponData();
-
-            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
+            // 3. Handle Firing - ONLY on State Authority to prevent duplicate firing
+            if (Object.HasStateAuthority)
             {
-                // Check if weapon is automatic OR if this is a new button press
-                bool shouldFire = data.isAutomatic
-                    ? input.fire
-                    : (input.fire && !lastFireState);
+                WeaponData data = _currentWeapon.GetWeaponData();
 
-                if (shouldFire)
+                if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
                 {
-                    // Mark that we've fired this tick
-                    _hasFiredThisFrame = true;
+                    // Check if weapon is automatic OR if this is a new button press
+                    bool shouldFire = data.isAutomatic
+                        ? input.fire
+                        : (input.fire && !lastFireState);
 
-                    // Reset Timer
-                    fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+                    if (shouldFire)
+                    {
+                        // Mark that we've fired this tick
+                        _hasFiredThisFrame = true;
 
-                    // FIXED: Pass the corrected aim direction
-                    Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
-                    Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+                        // Reset Timer
+                        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
 
-                    // Execute Fire Logic
-                    FireWeapon(aimFromWeapon, data);
+                        // FIXED: Pass the corrected aim direction
+                        Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
+                        Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
+
+                        // Execute Fire Logic
+                        FireWeapon(aimFromWeapon, data);
+                    }
                 }
-            }
 
-            // Update last fire state
-            lastFireState = input.fire;
+                // Update last fire state
+                lastFireState = input.fire;
+            }
         }
     }
 
@@ -81,77 +84,34 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // Server: Spawn functional projectiles (always invisible) + request visual spawns for all clients
-        if (Object.HasStateAuthority)
+        // Server always spawns functional projectiles (always invisible)
+        for (int i = 0; i < weaponData.bulletAmount; i++)
         {
-            for (int i = 0; i < weaponData.bulletAmount; i++)
+            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+            // Spawn functional (invisible) projectile
+            NetworkObject projectile = Runner.Spawn(
+                weaponData.bulletPrefab,
+                spawnPos,
+                spawnRotation,
+                Object.InputAuthority
+            );
+
+            if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
             {
-                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-                // Spawn functional (invisible) projectile
-                NetworkObject projectile = Runner.Spawn(
-                    weaponData.bulletPrefab,
-                    spawnPos,
-                    spawnRotation,
-                    Object.InputAuthority
-                );
-
-                if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
-                {
-                    proj.Initialize(weaponData, direction, Object.InputAuthority);
-                }
+                proj.Initialize(weaponData, direction, Object.InputAuthority);
             }
+        }
 
-            // Tell all clients (including host) to spawn visual projectiles
-            RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
-                _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
-                weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-        }
-        // Client: Request server to spawn functional projectiles (server will handle visual RPC)
-        else
-        {
-            RPC_RequestFireWeapon(aimDirection, spawnPos);
-        }
+        // Tell all clients (including host) to spawn visual projectiles
+        RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
+            _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
+            weaponData.spreadAmount, weaponData.maxSpreadDegrees);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SpawnVisualProjectiles(Vector2 aimDirection, Vector3 spawnPos, int bulletAmount, NetworkId weaponId, float bulletSpeed, float bulletLifetime, float spreadAmount, float maxSpread)
-    {
-        // Resolve weapon reference if needed
-        WeaponPickup weapon = _currentWeapon;
-        if (weapon == null || weapon.Object.Id != weaponId)
-        {
-            if (Runner.TryFindObject(weaponId, out NetworkObject weaponObj))
-            {
-                weapon = weaponObj.GetComponent<WeaponPickup>();
-            }
-        }
-
-        if (weapon == null) return;
-
-        WeaponData weaponData = weapon.GetWeaponData();
-        if (weaponData == null) return;
-
-        for (int i = 0; i < bulletAmount; i++)
-        {
-            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, spreadAmount, maxSpread);
-            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-            GameObject visualProjectile = Instantiate(
-                weaponData.bulletPrefab.gameObject,
-                spawnPos,
-                spawnRotation
-            );
-
-            // Set up the visual projectile to self-destruct
-            VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-            visualComp.Initialize(weaponData, direction, bulletLifetime);
-        }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_RequestFireWeapon(Vector2 aimDirection, Vector3 spawnPos)
     {
         if (_currentWeapon == null || _playerData == null || _playerData.Dead)
             return;
@@ -231,3 +191,4 @@ public class WeaponAimController : NetworkBehaviour
         }
     }
 }
+
