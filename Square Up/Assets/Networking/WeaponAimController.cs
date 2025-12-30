@@ -81,27 +81,7 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // EVERYONE with input authority spawns local visual projectiles for instant feedback
-        if (Object.HasInputAuthority)
-        {
-            for (int i = 0; i < weaponData.bulletAmount; i++)
-            {
-                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-                GameObject visualProjectile = Instantiate(
-                    weaponData.bulletPrefab.gameObject,
-                    spawnPos,
-                    spawnRotation
-                );
-
-                // Set up the visual projectile to self-destruct
-                VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-                visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
-            }
-        }
-
-        // Server: Spawn functional projectiles (always invisible)
+        // Server: Spawn functional projectiles (always invisible) + request visual spawns for all clients
         if (Object.HasStateAuthority)
         {
             for (int i = 0; i < weaponData.bulletAmount; i++)
@@ -109,6 +89,7 @@ public class WeaponAimController : NetworkBehaviour
                 Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
                 Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
 
+                // Spawn functional (invisible) projectile
                 NetworkObject projectile = Runner.Spawn(
                     weaponData.bulletPrefab,
                     spawnPos,
@@ -121,11 +102,37 @@ public class WeaponAimController : NetworkBehaviour
                     proj.Initialize(weaponData, direction, Object.InputAuthority);
                 }
             }
+
+            // Tell all clients (including host) to spawn visual projectiles
+            RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount);
         }
         // Client: Request server to spawn functional projectiles
         else
         {
             RPC_RequestFireWeapon(aimDirection, spawnPos);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnVisualProjectiles(Vector2 aimDirection, Vector3 spawnPos, int bulletAmount)
+    {
+        WeaponData weaponData = _currentWeapon?.GetWeaponData();
+        if (weaponData == null) return;
+
+        for (int i = 0; i < bulletAmount; i++)
+        {
+            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+            GameObject visualProjectile = Instantiate(
+                weaponData.bulletPrefab.gameObject,
+                spawnPos,
+                spawnRotation
+            );
+
+            // Set up the visual projectile to self-destruct
+            VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
+            visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
         }
     }
 
@@ -156,6 +163,9 @@ public class WeaponAimController : NetworkBehaviour
                 proj.Initialize(weaponData, direction, Object.InputAuthority);
             }
         }
+
+        // Tell all clients to spawn visual projectiles
+        RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount);
     }
 
     private void ResolveWeaponReference()
@@ -202,43 +212,6 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = null;
             CurrentWeaponId = default;
-        }
-    }
-}
-
-// Simple visual-only projectile for client-side prediction
-public class VisualProjectile : MonoBehaviour
-{
-    private Vector2 _velocity;
-    private float _lifetime;
-    private float _elapsedTime;
-
-    public void Initialize(WeaponData weaponData, Vector2 direction, float lifetime)
-    {
-        _velocity = direction.normalized * weaponData.bulletSpeed;
-        _lifetime = lifetime;
-        _elapsedTime = 0f;
-    }
-
-    private void Update()
-    {
-        _elapsedTime += Time.deltaTime;
-
-        // Self-destruct after lifetime
-        if (_elapsedTime >= _lifetime)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        // Simple movement
-        transform.position += (Vector3)_velocity * Time.deltaTime;
-
-        // Rotate to face direction
-        if (_velocity != Vector2.zero)
-        {
-            float angle = Mathf.Atan2(_velocity.y, _velocity.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
     }
 }
