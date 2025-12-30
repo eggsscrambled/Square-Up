@@ -16,11 +16,11 @@ MonoBehaviour:
   fireRate: 1.5
   bulletSpeed: 100
   bulletAmount: 5
-  spreadAmount: 8
-  maxSpreadDegrees: 45
+  spreadAmount: 18
+  maxSpreadDegrees: 60
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
-  damage: 20
+  damage: 25
   knockbackForce: 50
   isAutomatic: 0
   recoilForce: 50
-  bulletLifetime: 0.2
+  bulletLifetime: 0.175
