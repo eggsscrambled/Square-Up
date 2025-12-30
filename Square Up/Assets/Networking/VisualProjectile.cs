@@ -17,8 +17,7 @@ public class VisualProjectile : MonoBehaviour
         _elapsedTime = 0f;
 
         // Match the gravity settings from the networked projectile prefab
-        // You may need to expose these in WeaponData if they vary per weapon
-        _hitLayers = LayerMask.GetMask("Default", "Player", "Ground"); // Adjust layer names as needed
+        _hitLayers = LayerMask.GetMask("Default", "Player", "Obstacles");
     }
 
     private void Update()
