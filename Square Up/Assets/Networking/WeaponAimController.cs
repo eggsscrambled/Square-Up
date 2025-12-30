@@ -12,6 +12,9 @@ public class WeaponAimController : NetworkBehaviour
     private GameManager _gameManager;
     private bool _hasFiredThisFrame = false;
 
+    // Client-side prediction timer to prevent rapid firing before server confirms
+    private float _clientFireCooldown = 0f;
+
     public override void Spawned()
     {
         _playerData = GetComponent<PlayerData>();
@@ -22,6 +25,12 @@ public class WeaponAimController : NetworkBehaviour
     {
         // Reset the flag at the start of each network tick
         _hasFiredThisFrame = false;
+
+        // Decrement client cooldown
+        if (_clientFireCooldown > 0)
+        {
+            _clientFireCooldown -= Runner.DeltaTime;
+        }
 
         // 1. Resolve the weapon reference using the Networked ID
         ResolveWeaponReference();
@@ -48,7 +57,12 @@ public class WeaponAimController : NetworkBehaviour
             {
                 WeaponData data = _currentWeapon.GetWeaponData();
 
-                if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner) && !_hasFiredThisFrame)
+                // Check both networked timer AND client-side cooldown
+                bool canFire = fireRateTimer.ExpiredOrNotRunning(Runner) &&
+                               _clientFireCooldown <= 0 &&
+                               !_hasFiredThisFrame;
+
+                if (data != null && canFire)
                 {
                     // Check if weapon is automatic OR if this is a new button press
                     bool shouldFire = data.isAutomatic
@@ -59,6 +73,9 @@ public class WeaponAimController : NetworkBehaviour
                     {
                         // Mark that we've fired this tick
                         _hasFiredThisFrame = true;
+
+                        // Set client-side cooldown immediately (prevents firing again before server confirms)
+                        _clientFireCooldown = 1f / data.fireRate;
 
                         // Reset Timer (must be done on State Authority)
                         if (Object.HasStateAuthority)
