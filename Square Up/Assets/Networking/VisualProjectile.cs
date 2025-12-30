@@ -1,3 +1,4 @@
+// Simple visual-only projectile for client-side prediction
 using UnityEngine;
 
 public class VisualProjectile : MonoBehaviour

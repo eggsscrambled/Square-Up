@@ -104,9 +104,11 @@ public class WeaponAimController : NetworkBehaviour
             }
 
             // Tell all clients (including host) to spawn visual projectiles
-            RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount);
+            RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
+                _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
+                weaponData.spreadAmount, weaponData.maxSpreadDegrees);
         }
-        // Client: Request server to spawn functional projectiles
+        // Client: Request server to spawn functional projectiles (server will handle visual RPC)
         else
         {
             RPC_RequestFireWeapon(aimDirection, spawnPos);
@@ -114,14 +116,26 @@ public class WeaponAimController : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_SpawnVisualProjectiles(Vector2 aimDirection, Vector3 spawnPos, int bulletAmount)
+    private void RPC_SpawnVisualProjectiles(Vector2 aimDirection, Vector3 spawnPos, int bulletAmount, NetworkId weaponId, float bulletSpeed, float bulletLifetime, float spreadAmount, float maxSpread)
     {
-        WeaponData weaponData = _currentWeapon?.GetWeaponData();
+        // Resolve weapon reference if needed
+        WeaponPickup weapon = _currentWeapon;
+        if (weapon == null || weapon.Object.Id != weaponId)
+        {
+            if (Runner.TryFindObject(weaponId, out NetworkObject weaponObj))
+            {
+                weapon = weaponObj.GetComponent<WeaponPickup>();
+            }
+        }
+
+        if (weapon == null) return;
+
+        WeaponData weaponData = weapon.GetWeaponData();
         if (weaponData == null) return;
 
         for (int i = 0; i < bulletAmount; i++)
         {
-            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, spreadAmount, maxSpread);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
 
             GameObject visualProjectile = Instantiate(
@@ -132,7 +146,7 @@ public class WeaponAimController : NetworkBehaviour
 
             // Set up the visual projectile to self-destruct
             VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-            visualComp.Initialize(weaponData, direction, weaponData.bulletLifetime);
+            visualComp.Initialize(weaponData, direction, bulletLifetime);
         }
     }
 
@@ -164,8 +178,10 @@ public class WeaponAimController : NetworkBehaviour
             }
         }
 
-        // Tell all clients to spawn visual projectiles
-        RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount);
+        // Tell all clients to spawn visual projectiles (including the client who requested)
+        RPC_SpawnVisualProjectiles(aimDirection, spawnPos, weaponData.bulletAmount,
+            _currentWeapon.Object.Id, weaponData.bulletSpeed, weaponData.bulletLifetime,
+            weaponData.spreadAmount, weaponData.maxSpreadDegrees);
     }
 
     private void ResolveWeaponReference()
