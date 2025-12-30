@@ -4,8 +4,13 @@ using UnityEngine;
 public class PlayerWeaponPickupHandler : NetworkBehaviour
 {
     [SerializeField] private float pickupCheckRadius = 2f;
+    [SerializeField] private float pickupCooldown = 0.3f; // Cooldown between pickups
+
     private PlayerData playerData;
     private WeaponPickup[] allWeapons;
+
+    [Networked] private TickTimer PickupCooldownTimer { get; set; }
+    private bool wasPickupPressed = false; // Track previous frame state
 
     private void Awake()
     {
@@ -34,7 +39,11 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
         if (GetInput(out NetworkInputData input))
         {
-            if (input.pickup)
+            // Only trigger on the rising edge (key was just pressed, not held)
+            bool pickupJustPressed = input.pickup && !wasPickupPressed;
+            wasPickupPressed = input.pickup;
+
+            if (pickupJustPressed && PickupCooldownTimer.ExpiredOrNotRunning(Runner))
             {
                 Debug.Log($"[Client {Object.InputAuthority}] E KEY INPUT RECEIVED");
                 TryPickupNearbyWeapon();
@@ -60,7 +69,6 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
                 continue;
 
             float distance = Vector3.Distance(transform.position, weapon.transform.position);
-
             if (distance <= pickupCheckRadius && distance < closestDistance)
             {
                 closestDistance = distance;
@@ -72,6 +80,9 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         {
             Debug.Log($"[Client {Object.InputAuthority}] Trying to pickup weapon at distance {closestDistance}");
             closestWeapon.TryPickup(Object.InputAuthority);
+
+            // Start cooldown timer
+            PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
         }
         else
         {

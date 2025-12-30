@@ -10,7 +10,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     [SerializeField] private NetworkRunner runnerPrefab;
     [SerializeField] private NetworkObject playerPrefab;
-    [SerializeField] private int gameSceneBuildIndex = 1; // Set this to your game scene's build index
+    [SerializeField] private int gameSceneBuildIndex = 1;
 
     private NetworkRunner runner;
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
@@ -18,13 +18,11 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
     async void Start()
     {
-        // Initialize Fusion runner
         runner = Instantiate(runnerPrefab);
         runner.AddCallbacks(this);
 
-        // Keep the runner alive across scenes
         DontDestroyOnLoad(runner.gameObject);
-        DontDestroyOnLoad(gameObject); // Keep the LobbyManager alive too
+        DontDestroyOnLoad(gameObject);
     }
 
     void Update()
@@ -40,7 +38,10 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             if (Camera.main != null)
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                mousePos.z = 0; // Make sure z is 0 for 2D
+                mousePos.z = 0;
+
+                // Store mouse world position in input data
+                inputData.mouseWorldPosition = new Vector2(mousePos.x, mousePos.y);
 
                 // Get local player position using input authority
                 PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
@@ -79,7 +80,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         if (result.Ok)
         {
             Debug.Log("Host started successfully");
-            // Load the game scene
             runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
         }
         else
@@ -111,7 +111,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         Debug.Log($"Player {player} joined");
 
-        // Host spawns players
         if (runner.IsServer)
         {
             Vector3 spawnPos = new Vector3(UnityEngine.Random.Range(-5f, 5f), 2f, 0f);
@@ -142,7 +141,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         Debug.Log($"Shutdown: {shutdownReason}");
     }
 
-    // Required callbacks (empty implementations)
     public void OnConnectedToServer(NetworkRunner runner) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }

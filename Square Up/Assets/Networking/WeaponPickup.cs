@@ -16,6 +16,7 @@ public class WeaponPickup : NetworkBehaviour
 
     [Header("Pickup Settings")]
     [SerializeField] private float orbitRadius = 0.5f;
+    [SerializeField] private float verticalOffset = -0.3f;
     [SerializeField] private bool hideWhenHeld = true;
     [SerializeField] private bool rotateWithAim = true;
     [SerializeField] private bool flipSpriteWhenAimingLeft = true;
@@ -71,7 +72,6 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestPickup(PlayerRef player, RpcInfo info = default)
     {
-        // Security check: only allow the requesting player to pick up
         if (info.Source != player)
         {
             Debug.LogWarning($"Player {info.Source} tried to pickup for player {player} - rejected");
@@ -93,7 +93,6 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
-        // If we have state authority, process directly
         TryPickupOnServer(player);
     }
 
@@ -105,7 +104,6 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
-        // Do a fresh check to validate proximity
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
         Debug.Log($"Found {nearbyColliders.Length} colliders in pickup range");
 
@@ -162,7 +160,8 @@ public class WeaponPickup : NetworkBehaviour
         if (AimDirection.magnitude < 0.1f)
             return;
 
-        Vector3 targetPosition = ownerTransform.position + (Vector3)(AimDirection.normalized * orbitRadius);
+        Vector3 offsetPosition = ownerTransform.position + Vector3.up * verticalOffset;
+        Vector3 targetPosition = offsetPosition + (Vector3)(AimDirection.normalized * orbitRadius);
         transform.position = targetPosition;
 
         if (rotateWithAim)
@@ -181,6 +180,15 @@ public class WeaponPickup : NetworkBehaviour
             return;
 
         AimDirection = aimDirection.normalized;
+    }
+
+    public Vector3 GetWeaponHoldPosition()
+    {
+        if (ownerTransform != null)
+        {
+            return ownerTransform.position + Vector3.up * verticalOffset;
+        }
+        return transform.position;
     }
 
     private void AttemptPickup(PlayerData player)
@@ -202,9 +210,26 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
+        // FIXED: Only drop the currently held weapon pickup object
+        // Don't spawn a new one - just drop the existing pickup back into the world
         if (player.HasWeapon())
         {
-            DropWeapon(player);
+            WeaponPickup currentWeapon = FindCurrentlyHeldWeapon(player);
+            if (currentWeapon != null)
+            {
+                // Drop at player position with no velocity
+                currentWeapon.Drop(player.transform.position, Vector2.zero);
+            }
+            else
+            {
+                // Fallback: if we can't find the pickup (shouldn't happen), spawn one
+                Debug.LogWarning("Couldn't find currently held weapon pickup - spawning new one");
+                WeaponData currentWeaponData = gameManager.GetWeaponData(player.WeaponIndex);
+                if (currentWeaponData != null)
+                {
+                    gameManager.SpawnDroppedWeapon(currentWeaponData, player.transform.position);
+                }
+            }
         }
 
         player.PickupWeapon(weaponIndex + 1);
@@ -220,18 +245,14 @@ public class WeaponPickup : NetworkBehaviour
 
         transform.SetParent(null);
 
-        // FIXED: Keep collider enabled so other clients can detect it
-        // Just disable physics simulation
         if (rb != null)
             rb.simulated = false;
 
-        // Make collider a trigger so it doesn't physically interact
         if (col != null)
         {
             col.isTrigger = true;
         }
 
-        // Hide the visual if configured
         if (hideWhenHeld && spriteRenderer != null)
         {
             spriteRenderer.enabled = false;
@@ -240,17 +261,17 @@ public class WeaponPickup : NetworkBehaviour
         Debug.Log($"Player {player.Object.InputAuthority} picked up {weaponData.weaponID}");
     }
 
-    private void DropWeapon(PlayerData player)
+    private WeaponPickup FindCurrentlyHeldWeapon(PlayerData player)
     {
-        if (!Object.HasStateAuthority)
-            return;
-
-        WeaponData currentWeaponData = gameManager.GetWeaponData(player.WeaponIndex);
-
-        if (currentWeaponData != null)
+        WeaponPickup[] allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
+        foreach (var weapon in allWeapons)
         {
-            gameManager.SpawnDroppedWeapon(currentWeaponData, player.transform.position);
+            if (weapon.IsPickedUp && weapon.Owner == player.Object.InputAuthority)
+            {
+                return weapon;
+            }
         }
+        return null;
     }
 
     public void Drop(Vector3 position, Vector2 throwVelocity)
@@ -273,10 +294,9 @@ public class WeaponPickup : NetworkBehaviour
             rb.linearVelocity = throwVelocity;
         }
 
-        // Re-enable collider as non-trigger
         if (col != null)
         {
-            col.isTrigger = false;
+            col.isTrigger = true;
             col.enabled = true;
         }
 
@@ -299,7 +319,6 @@ public class WeaponPickup : NetworkBehaviour
 
     public bool IsPlayerNearby(PlayerRef player)
     {
-        // Check proximity directly
         if (IsPickedUp) return false;
 
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
@@ -323,11 +342,5 @@ public class WeaponPickup : NetworkBehaviour
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, pickupRadius);
-
-        if (IsPickedUp && ownerTransform != null)
-        {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(ownerTransform.position, orbitRadius);
-        }
     }
 }
