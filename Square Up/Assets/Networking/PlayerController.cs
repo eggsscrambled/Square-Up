@@ -152,6 +152,20 @@ public class PlayerController : NetworkBehaviour
         transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Runner.DeltaTime);
     }
 
+    /// <summary>
+    /// Returns the dash cooldown progress as a normalized value (0-1).
+    /// 0 = cooldown is ready (dash available)
+    /// 1 = cooldown just started (dash not available)
+    /// </summary>
+    public float GetDashCooldownProgress()
+    {
+        if (Runner == null || DashCooldownTimer.ExpiredOrNotRunning(Runner))
+            return 0f;
+
+        float remainingTime = DashCooldownTimer.RemainingTime(Runner) ?? 0f;
+        return Mathf.Clamp01(remainingTime / dashCooldown);
+    }
+
     private void OnDrawGizmosSelected()
     {
         // Draw collision radius

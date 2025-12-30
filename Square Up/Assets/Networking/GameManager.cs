@@ -27,7 +27,7 @@ public class GameManager : NetworkBehaviour
 
 
     [Header("Game State")]
-    [Networked] private NetworkBool GameStarted { get; set; }
+    [Networked] public NetworkBool GameStarted { get; set; }
     [Networked] private NetworkBool RoundInProgress { get; set; }
     [Networked] private int RoundNumber { get; set; }
     [Networked] private TickTimer RoundTimer { get; set; }
