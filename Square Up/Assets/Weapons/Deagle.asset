@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30d8139b11320ae43acbf008f4408406, type: 3}
   m_Name: Deagle
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  weaponID: Pistol
-  fireRate: 1.5
+  weaponID: Deagle
+  fireRate: 1
   bulletSpeed: 150
   bulletAmount: 1
   spreadAmount: 2.5
-  maxSpreadDegrees: 0
+  maxSpreadDegrees: 5
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   damage: 35
   knockbackForce: 45
   isAutomatic: 0
   recoilForce: 15
+  bulletLifetime: 0.35

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Shotgun
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: Shotgun
-  fireRate: 6.7
+  fireRate: 1.5
   bulletSpeed: 100
   bulletAmount: 5
   spreadAmount: 8
@@ -23,3 +23,4 @@ MonoBehaviour:
   knockbackForce: 50
   isAutomatic: 0
   recoilForce: 50
+  bulletLifetime: 0.2

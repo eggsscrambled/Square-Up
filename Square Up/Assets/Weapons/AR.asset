@@ -13,13 +13,14 @@ MonoBehaviour:
   m_Name: AR
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: AR
-  fireRate: 5
+  fireRate: 4
   bulletSpeed: 110
   bulletAmount: 1
-  spreadAmount: 1
-  maxSpreadDegrees: 0
+  spreadAmount: 2
+  maxSpreadDegrees: 15
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   damage: 16
   knockbackForce: 30
   isAutomatic: 1
   recoilForce: 15
+  bulletLifetime: 0.5
