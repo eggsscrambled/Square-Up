@@ -291,9 +291,9 @@ MonoBehaviour:
   rotateTowardsAim: 0
   rotationSpeed: 10
   enableDash: 1
-  dashSpeed: 200
+  dashSpeed: 100
   dashDuration: 0.1
-  dashCooldown: 1
+  dashCooldown: 5
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
