@@ -168,6 +168,7 @@ GameObject:
   - component: {fileID: -5572399297541979155}
   - component: {fileID: -3703887877102232386}
   - component: {fileID: 6947912232715599783}
+  - component: {fileID: 523855046104412628}
   - component: {fileID: 6356025648234514857}
   m_Layer: 7
   m_Name: PlayerSquare
@@ -273,6 +274,7 @@ MonoBehaviour:
   - {fileID: 3725375924820605785}
   - {fileID: -5572399297541979155}
   - {fileID: -3703887877102232386}
+  - {fileID: 523855046104412628}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8112783526921449494
 MonoBehaviour:
@@ -397,6 +399,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponAimController
   _CurrentWeaponId:
     Raw: 0
+  muzzleFlashPrefab: {fileID: 3317814402342211334, guid: bdddfd04d8da115489460b3575282724, type: 3}
 --- !u!58 &6947912232715599783
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -433,6 +436,23 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.38
+--- !u!114 &523855046104412628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4824145230785826498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1039544458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.HitboxRoot
+  Config: 3
+  BroadRadius: 0
+  Offset: {x: 0, y: 0, z: 0}
+  GizmosColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  Hitboxes: []
 --- !u!114 &6356025648234514857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -469,7 +489,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &4497447582256800860
 Transform:
   m_ObjectHideFlags: 0

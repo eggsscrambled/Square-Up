@@ -6,22 +6,26 @@ public class NetworkedProjectile : NetworkBehaviour
     [Networked] public Vector2 Velocity { get; set; }
     [Networked] public PlayerRef Owner { get; set; }
     [Networked] public TickTimer LifeTime { get; set; }
-
-    // Missing properties added here
     [Networked] public int Damage { get; set; }
-    [Networked] public float KnockbackForce { get; set; }
-    [Networked] public NetworkBool UseGravity { get; set; }
-    [Networked] public float GravityScale { get; set; }
+    [Networked] public float Knockback { get; set; }
 
-    [Header("Fallbacks/Defaults")]
-    [SerializeField] private LayerMask hitLayers;
-    [SerializeField] private bool defaultUseGravity = false;
-    [SerializeField] private float defaultGravityScale = 1f;
+    [Header("Detection Layers")]
+    [SerializeField] private LayerMask environmentLayer;
+    [SerializeField] private LayerMask combatLayer;
 
-    // Getter methods for the WeaponAimController to check prefab defaults
-    public bool GetUseGravity() => defaultUseGravity;
-    public float GetGravityScale() => defaultGravityScale;
-    public LayerMask GetHitLayers() => hitLayers;
+    private TickTimer _ignoreOwnerTimer;
+
+    public void Initialize(WeaponData data, Vector2 velocity, PlayerRef owner)
+    {
+        Velocity = velocity;
+        Owner = owner;
+        Damage = data.damage;
+        Knockback = data.knockbackForce;
+        LifeTime = TickTimer.CreateFromSeconds(Runner, data.bulletLifetime);
+
+        // Short timer to prevent the bullet from hitting the shooter immediately
+        _ignoreOwnerTimer = TickTimer.CreateFromSeconds(Runner, 0.1f);
+    }
 
     public override void FixedUpdateNetwork()
     {
@@ -31,32 +35,38 @@ public class NetworkedProjectile : NetworkBehaviour
             return;
         }
 
-        // Apply Gravity if enabled
-        if (UseGravity)
-        {
-            Vector2 gravity = new Vector2(0, Physics2D.gravity.y * GravityScale * Runner.DeltaTime);
-            Velocity += gravity;
-        }
-
         Vector2 movement = Velocity * Runner.DeltaTime;
         float distance = movement.magnitude;
 
-        // Lag Compensated Raycast (Rewinds time to match client view)
-        if (Runner.LagCompensation.Raycast(
-            transform.position,
-            Velocity.normalized,
-            distance,
-            Owner,
-            out LagCompensatedHit hitInfo,
-            hitLayers,
-            HitOptions.IncludePhysX))
+        // 1. Environment Collision (Walls)
+        RaycastHit2D envHit = Physics2D.Raycast(transform.position, Velocity.normalized, distance, environmentLayer);
+        if (envHit.collider != null)
         {
-            HandleHit(hitInfo);
+            if (Object.HasStateAuthority) Runner.Despawn(Object);
             return;
         }
 
+        // 2. Combat Collision (Players) - Lag Compensated
+        if (Runner.LagCompensation.Raycast(transform.position, Velocity.normalized, distance,
+            Owner, out LagCompensatedHit hit, combatLayer, HitOptions.IncludePhysX))
+        {
+            // Ignore the owner for the first few frames to prevent self-collision
+            if (hit.Hitbox != null && hit.Hitbox.Root.Object.InputAuthority == Owner && !_ignoreOwnerTimer.Expired(Runner))
+            {
+                // Continue movement if it's the owner and the timer hasn't cleared
+            }
+            else if (Object.HasStateAuthority)
+            {
+                ApplyHitLogic(hit);
+                Runner.Despawn(Object);
+                return;
+            }
+        }
+
+        // 3. Apply Movement
         transform.position += (Vector3)movement;
 
+        // Update rotation to match velocity
         if (Velocity != Vector2.zero)
         {
             float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
@@ -64,25 +74,13 @@ public class NetworkedProjectile : NetworkBehaviour
         }
     }
 
-    private void HandleHit(LagCompensatedHit hit)
+    private void ApplyHitLogic(LagCompensatedHit hit)
     {
-        if (Object.HasStateAuthority)
+        if (hit.GameObject.TryGetComponent<PlayerData>(out var data))
         {
-            if (hit.GameObject.TryGetComponent<PlayerData>(out var data))
-            {
-                data.TakeDamage(Damage);
-
-                if (hit.GameObject.TryGetComponent<Rigidbody2D>(out var rb))
-                {
-                    rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
-                }
-            }
-            Runner.Despawn(Object);
-        }
-        else
-        {
-            // Predicted visual feedback
-            gameObject.SetActive(false);
+            data.TakeDamage(Damage);
+            if (hit.GameObject.TryGetComponent<Rigidbody2D>(out var rb))
+                rb.AddForce(Velocity.normalized * Knockback, ForceMode2D.Impulse);
         }
     }
 }
