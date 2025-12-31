@@ -56,10 +56,11 @@ public class PlayerData : NetworkBehaviour
         }
 
         ApplyColor();
+    }
 
-
+    public void LateUpdate()
+    {
         healthUI.fillAmount = (Health / 100);
-
     }
 
     private void TryAssignTagAndLayer()
