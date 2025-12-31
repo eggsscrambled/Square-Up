@@ -11,10 +11,12 @@ public class NetworkedProjectile : NetworkBehaviour
 
     [SerializeField] private float maxLifeTime = 5f;
     [SerializeField] private LayerMask hitLayers;
+    [SerializeField] private LayerMask playerLayer; // Specific layer for damage detection
     [SerializeField] private bool useGravity = false;
     [SerializeField] private float gravityScale = 1f;
 
     public LayerMask GetHitLayers() => hitLayers;
+    public LayerMask GetPlayerLayer() => playerLayer;
     public bool GetUseGravity() => useGravity;
     public float GetGravityScale() => gravityScale;
 
@@ -112,13 +114,17 @@ public class NetworkedProjectile : NetworkBehaviour
         // Only the Server applies damage and effects
         if (Object.HasStateAuthority)
         {
-            if (hit.collider.TryGetComponent<PlayerData>(out PlayerData playerData))
+            // Check if the hit object is on the player layer for damage
+            if (((1 << hit.collider.gameObject.layer) & playerLayer) != 0)
             {
-                playerData.TakeDamage(Damage);
-
-                if (hit.collider.TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                if (hit.collider.TryGetComponent<PlayerData>(out PlayerData playerData))
                 {
-                    rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
+                    playerData.TakeDamage(Damage);
+
+                    if (hit.collider.TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                    {
+                        rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
+                    }
                 }
             }
 
