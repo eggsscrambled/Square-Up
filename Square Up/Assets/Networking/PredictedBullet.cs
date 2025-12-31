@@ -5,6 +5,8 @@ public class PredictedBullet : MonoBehaviour
     private Vector2 velocity;
     private float lifetime;
 
+    [SerializeField] private LayerMask collisionLayers;
+
     public void Initialize(Vector2 vel, float life)
     {
         velocity = vel;
@@ -23,6 +25,24 @@ public class PredictedBullet : MonoBehaviour
 
         lifetime -= Time.deltaTime;
         if (lifetime <= 0)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // Check if the collided object's layer is in our collision layers mask
+        if (((1 << other.gameObject.layer) & collisionLayers) != 0)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Check if the collided object's layer is in our collision layers mask
+        if (((1 << collision.gameObject.layer) & collisionLayers) != 0)
         {
             Destroy(gameObject);
         }

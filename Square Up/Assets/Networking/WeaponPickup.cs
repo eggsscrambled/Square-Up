@@ -124,8 +124,12 @@ public class WeaponPickup : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Weapon transform is updated in Render() on all clients
-        // No need to update here since position is calculated from synced data
+        // Update weapon position on server when held
+        // This keeps the networked position in sync even though NetworkTransform is disabled
+        if (Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
+        {
+            UpdateWeaponTransform();
+        }
     }
 
     public override void Render()
@@ -133,8 +137,9 @@ public class WeaponPickup : NetworkBehaviour
         // Resolve owner reference on all clients
         ResolveOwnerReference();
 
-        // Update visuals locally on ALL clients for smooth rendering
-        if (IsPickedUp && ownerTransform != null)
+        // Update visuals locally on NON-AUTHORITY clients for smooth rendering
+        // Authority already updated in FixedUpdateNetwork
+        if (!Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();
         }
