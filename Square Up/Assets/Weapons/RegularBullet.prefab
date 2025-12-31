@@ -286,7 +286,7 @@ MonoBehaviour:
     m_Bits: 577
   playerLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 193
   useGravity: 0
   gravityScale: 1
 --- !u!114 &1833115113625673296
