@@ -98,10 +98,16 @@ public class WeaponAimController : NetworkBehaviour
 
     private void TriggerLocalMuzzleFlash()
     {
-        if (muzzleFlashPrefab == null || _currentWeapon == null) return;
+        if (_currentWeapon == null) return;
+
+        WeaponData data = _currentWeapon.GetWeaponData();
+        GameObject flashPrefab = data?.muzzleFlashPrefab ?? muzzleFlashPrefab; // Fallback to default
+
+        if (flashPrefab == null) return;
+
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
-        GameObject flash = Instantiate(muzzleFlashPrefab, spawnPos, _currentWeapon.transform.rotation);
+        GameObject flash = Instantiate(flashPrefab, spawnPos, _currentWeapon.transform.rotation);
         Destroy(flash, 1.0f);
     }
 

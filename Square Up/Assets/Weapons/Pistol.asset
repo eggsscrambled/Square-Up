@@ -20,6 +20,7 @@ MonoBehaviour:
   maxSpreadDegrees: 10
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   bulletVisualPrefab: {fileID: 7754371058564287661, guid: 49cb5217cb010774e89f8eddb761fe50, type: 3}
+  muzzleFlashPrefab: {fileID: 3317814402342211334, guid: bdddfd04d8da115489460b3575282724, type: 3}
   damage: 16
   knockbackForce: 7
   isAutomatic: 0

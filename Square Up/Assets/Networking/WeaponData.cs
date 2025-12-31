@@ -10,10 +10,11 @@ public class WeaponData : ScriptableObject
     public float spreadAmount = 1;
     public float maxSpreadDegrees = 45;
     public GameObject bulletPrefab;
-    public GameObject bulletVisualPrefab; // Visual-only bullet (no NetworkObject)
+    public GameObject bulletVisualPrefab;
+    public GameObject muzzleFlashPrefab; // Add this - each weapon gets its own
     public int damage = 10;
     public float knockbackForce = 5f;
     public bool isAutomatic = false;
     public float recoilForce = 2f;
-    public float bulletLifetime = 5f; // How long the bullet lives in seconds
+    public float bulletLifetime = 5f;
 }
