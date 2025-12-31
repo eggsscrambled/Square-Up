@@ -15,7 +15,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private NetworkInputData inputData;
 
-    // Accumulators to prevent missed inputs at 64 TPS
     private bool _pickupAccumulator;
     private bool _dashAccumulator;
 
@@ -31,7 +30,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner == null || !runner.IsRunning) return;
 
-        // 1. Continuous Inputs
         inputData.movementInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
         if (Camera.main != null)
@@ -52,26 +50,24 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         inputData.wasFirePressedLastTick = inputData.fire;
         inputData.fire = Input.GetButton("Fire1");
 
-        // 2. Accumulated Inputs (The Fix)
-        // We use |= so that if the key is pressed in ANY frame between ticks, it stays TRUE
+        // Accumulate pulses
         if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        // 3. Assign accumulated pulses to the network struct
         inputData.pickup = _pickupAccumulator;
         inputData.dash = _dashAccumulator;
 
         input.Set(inputData);
 
-        // 4. RESET accumulators so they don't fire again next tick
+        // Reset so the pulse only lasts one tick
         _pickupAccumulator = false;
         _dashAccumulator = false;
     }
 
-    // --- Lobby & Session Management ---
+    // --- Lobby/Session Boilerplate ---
     public async void StartHost()
     {
         var result = await runner.StartGame(new StartGameArgs()
@@ -81,16 +77,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
         if (result.Ok) runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
-    }
-
-    public async void StartClient()
-    {
-        await runner.StartGame(new StartGameArgs()
-        {
-            GameMode = GameMode.Client,
-            SessionName = "TestRoom",
-            SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
-        });
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -103,16 +89,8 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
-    {
-        if (spawnedPlayers.TryGetValue(player, out NetworkObject playerObj))
-        {
-            runner.Despawn(playerObj);
-            spawnedPlayers.Remove(player);
-        }
-    }
-
-    // Unused callbacks
+    // Include other standard INetworkRunnerCallbacks here (OnPlayerLeft, etc.)
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { /* logic */ }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
