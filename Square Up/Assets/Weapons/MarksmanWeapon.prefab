@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 2761310692846135036}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.206, y: 0.08, z: 0}
+  m_LocalPosition: {x: 0.795, y: 0.228, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -46,7 +46,7 @@ GameObject:
   - component: {fileID: 3614270641424586125}
   - component: {fileID: 8715934362138005770}
   m_Layer: 8
-  m_Name: DeagleWeapon
+  m_Name: MarksmanWeapon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -115,12 +115,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 03618fe64cc07c54bb5dde669f92356f, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 565a7831fc9f6b94cbd8e8581d6c2c80, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 1
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 8.32, y: 5.04}
+  m_Size: {x: 1.3771429, y: 0.6157143}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -160,17 +160,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.005695522, y: 0.18225579}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.46222222, y: 0.28}
-    newSize: {x: 8.32, y: 5.04}
+    oldSize: {x: 1.6066667, y: 0.7183333}
+    newSize: {x: 1.3771429, y: 0.6157143}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.41, y: 0.3}
+  m_Size: {x: 1.6440235, y: 0.4063159}
   m_EdgeRadius: 0
 --- !u!114 &652147011907038167
 MonoBehaviour:
@@ -184,7 +184,7 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 3928189602
+  SortKey: 2284849146
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
@@ -204,7 +204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bb9c497f8b823340b0b8e75c131fb7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponPickup
-  weaponData: {fileID: 11400000, guid: e5197d0ac58de50488fabfb72f312bba, type: 2}
+  weaponData: {fileID: 11400000, guid: 5d9f632c2da7eb249b5884b75e79d97a, type: 2}
   pickupRadius: 2
   playerLayer:
     serializedVersion: 2
