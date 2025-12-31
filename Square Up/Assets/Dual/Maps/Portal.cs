@@ -4,12 +4,12 @@ public class Portal : MonoBehaviour
 {
     public Transform teleportPos;
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        OnColliderEntered(other);
+        OnColliderEntered(collision);
     }
 
-    private void OnColliderEntered(Collider collider)
+    private void OnColliderEntered(Collider2D collider)
     {
         Transform portalOBJ = collider.gameObject.GetComponent<Transform>();
 
