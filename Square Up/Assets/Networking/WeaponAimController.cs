@@ -5,6 +5,7 @@ public class WeaponAimController : NetworkBehaviour
 {
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
+    [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
 
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
@@ -12,6 +13,8 @@ public class WeaponAimController : NetworkBehaviour
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private PlayerController _playerController;
+
+    public WeaponPickup CurrentWeapon => _currentWeapon;
 
     public override void Spawned()
     {
@@ -27,7 +30,7 @@ public class WeaponAimController : NetworkBehaviour
 
         if (GetInput(out NetworkInputData input))
         {
-            // 1. Aiming (Only the state authority updates the networked weapon position)
+            // Update Aiming
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
@@ -35,24 +38,32 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            // 2. Firing Logic
+            // Check for Fire button via NetworkButtons
+            bool firePressed = input.buttons.IsSet(MyButtons.Fire);
+
             WeaponData data = _currentWeapon.GetWeaponData();
             if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
             {
-                if (input.fire)
-                {
-                    // Instant Local Visual Feedback (Runs on Client immediately)
-                    if (Runner.IsForward)
-                    {
-                        TriggerLocalMuzzleFlash();
-                    }
+                bool shouldFire = false;
 
-                    // Server-Authoritative Bullet Spawn
+                if (data.isAutomatic)
+                {
+                    // Automatic: fire while button is held
+                    shouldFire = firePressed;
+                }
+                else
+                {
+                    // Semi-automatic: fire only on button press (not held)
+                    shouldFire = firePressed && !wasFirePressedLastFrame;
+                }
+
+                if (shouldFire)
+                {
+                    if (Runner.IsForward) TriggerLocalMuzzleFlash();
+
                     if (Object.HasStateAuthority)
                     {
                         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
-
-                        // Recoil applied instantly on server
                         if (_playerController != null) _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
 
                         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
@@ -63,31 +74,48 @@ public class WeaponAimController : NetworkBehaviour
                     }
                 }
             }
+
+            // Track button state for next frame (only on state authority)
+            if (Object.HasStateAuthority)
+            {
+                wasFirePressedLastFrame = firePressed;
+            }
         }
     }
 
     private void TriggerLocalMuzzleFlash()
     {
         if (muzzleFlashPrefab == null || _currentWeapon == null) return;
-
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
-
-        // Instantiate locally to hide network latency
         GameObject flash = Instantiate(muzzleFlashPrefab, spawnPos, _currentWeapon.transform.rotation);
-
-        // Manual garbage collection: destroy the local object after 1 second
         Destroy(flash, 1.0f);
     }
 
     private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos)
     {
+        // Use tick-based seed for deterministic randomness across client and server
+        int seed = Runner.Tick.Raw;
+        Random.InitState(seed);
+
         for (int i = 0; i < data.bulletAmount; i++)
         {
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            // Server-only spawn to maintain authority and prevent desync
+            // Spawn predicted visual bullet ONLY for remote clients (not host)
+            // Remote clients need instant feedback since they don't have state authority
+            if (!Object.HasStateAuthority && Object.HasInputAuthority && data.bulletVisualPrefab != null)
+            {
+                GameObject predicted = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRotation);
+                var predBullet = predicted.GetComponent<PredictedBullet>();
+                if (predBullet != null)
+                {
+                    predBullet.Initialize(spreadDir * data.bulletSpeed, data.bulletLifetime);
+                }
+            }
+
+            // Spawn authoritative networked bullet (happens on host/state authority)
             Runner.Spawn(data.bulletPrefab, spawnPos, spawnRotation, Object.InputAuthority, (runner, obj) =>
             {
                 var proj = obj.GetComponent<NetworkedProjectile>();
@@ -104,14 +132,13 @@ public class WeaponAimController : NetworkBehaviour
         return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
 
-    // --- PICKUP LINKING METHODS (Fixed Compiler Errors) ---
-
     public void SetCurrentWeapon(WeaponPickup weapon)
     {
         if (Object.HasStateAuthority)
         {
             _currentWeapon = weapon;
             CurrentWeaponId = weapon != null ? weapon.Object.Id : default;
+            wasFirePressedLastFrame = false; // Reset button state when switching weapons
         }
     }
 
@@ -121,6 +148,7 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = null;
             CurrentWeaponId = default;
+            wasFirePressedLastFrame = false; // Reset button state when clearing weapon
         }
     }
 

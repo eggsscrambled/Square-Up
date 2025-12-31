@@ -4,122 +4,83 @@ using UnityEngine;
 public class PlayerWeaponPickupHandler : NetworkBehaviour
 {
     [SerializeField] private float pickupCheckRadius = 2f;
-    [SerializeField] private float pickupCooldown = 0.5f;
+    [SerializeField] private float throwForce = 8f;
+
     private PlayerData playerData;
-    private WeaponPickup[] allWeapons;
 
-    [Networked] private TickTimer PickupCooldownTimer { get; set; }
-    [Networked] private NetworkBool PendingPickup { get; set; } // Track if we're waiting for a pickup RPC
+    // This networked timer prevents the "Instant Drop" by creating a small gap
+    // between interactions, even during re-simulations.
+    [Networked] private TickTimer InteractionCooldown { get; set; }
 
-    private void Awake()
-    {
-        playerData = GetComponent<PlayerData>();
-    }
-
-    public override void Spawned()
-    {
-        RefreshWeaponList();
-    }
-
-    private void RefreshWeaponList()
-    {
-        allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
-    }
+    private void Awake() => playerData = GetComponent<PlayerData>();
 
     public override void FixedUpdateNetwork()
     {
         if (GetInput(out NetworkInputData input))
         {
-            // Only proceed if E was pressed and cooldown is over
-            if (input.pickup && PickupCooldownTimer.ExpiredOrNotRunning(Runner))
+            // Check if the Pickup button is held AND the cooldown has finished
+            if (input.buttons.IsSet(MyButtons.Pickup) && InteractionCooldown.ExpiredOrNotRunning(Runner))
             {
                 if (playerData != null && playerData.Dead) return;
 
-                // Start cooldown immediately to prevent "double-tap" logic in re-simulations
-                PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
-                HandlePickupSwapOrDrop();
-            }
-        }
+                // 1. Close the gate for 0.25 seconds so this can't fire again immediately
+                InteractionCooldown = TickTimer.CreateFromSeconds(Runner, 0.25f);
 
-        // Clear pending pickup flag after a short delay
-        if (PendingPickup && PickupCooldownTimer.ExpiredOrNotRunning(Runner))
-        {
-            PendingPickup = false;
+                // 2. Calculate throw velocity
+                Vector2 aimDir = input.aimDirection.magnitude > 0.1f ? input.aimDirection.normalized : (Vector2)transform.up;
+                Vector2 throwVelocity = (aimDir + Vector2.up * 0.4f).normalized * throwForce;
+
+                // 3. Send the request to the server
+                RPC_RequestInteraction(throwVelocity);
+            }
         }
     }
 
-    private void HandlePickupSwapOrDrop()
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestInteraction(Vector2 throwVelocity)
     {
-        RefreshWeaponList();
         WeaponPickup closestWeapon = null;
         float closestDistance = float.MaxValue;
 
-        // 1. Find the closest ground weapon
+        // Find the nearest weapon on the server
+        WeaponPickup[] allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
         foreach (var weapon in allWeapons)
         {
-            if (weapon == null || weapon.GetIsPickedUp())
-                continue;
-
-            float distance = Vector3.Distance(transform.position, weapon.transform.position);
-            if (distance <= pickupCheckRadius && distance < closestDistance)
+            if (weapon == null || weapon.GetIsPickedUp()) continue;
+            float dist = Vector3.Distance(transform.position, weapon.transform.position);
+            if (dist <= pickupCheckRadius && dist < closestDistance)
             {
-                closestDistance = distance;
+                closestDistance = dist;
                 closestWeapon = weapon;
             }
         }
 
-        // 2. SWAP OR PICKUP LOGIC
+        // The Server makes the final call
         if (closestWeapon != null)
         {
-            // Set flag to prevent drop during prediction
-            PendingPickup = true;
-
-            // If we are already holding a weapon, drop it first to "Swap"
-            if (playerData != null && playerData.HasWeapon())
-            {
-                RPC_RequestDropCurrentWeapon(Object.InputAuthority);
-            }
-
-            // Pickup the new weapon
-            closestWeapon.TryPickup(Object.InputAuthority);
-            return;
+            // SWAP logic
+            HandleServerDrop(throwVelocity);
+            closestWeapon.ServerExecutePickup(Object.InputAuthority);
         }
-
-        // 3. PURE DROP LOGIC
-        // If no weapon was nearby AND we're not waiting for a pickup, drop the held weapon
-        if (!PendingPickup && playerData != null && playerData.HasWeapon())
+        else
         {
-            RPC_RequestDropCurrentWeapon(Object.InputAuthority);
+            // PURE DROP logic
+            HandleServerDrop(throwVelocity);
         }
     }
 
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestDropCurrentWeapon(PlayerRef playerRef, RpcInfo info = default)
+    private void HandleServerDrop(Vector2 throwVelocity)
     {
-        // Validation: Only the owner or the server can trigger this
-        if (info.Source != playerRef && info.Source != PlayerRef.None) return;
-
-        WeaponPickup heldWeapon = WeaponPickup.GetHeldWeapon(playerRef);
-        if (heldWeapon != null)
+        WeaponAimController aim = GetComponent<WeaponAimController>();
+        if (aim != null && aim.CurrentWeapon != null)
         {
-            Vector3 dropPosition = transform.position;
-            Vector2 dropVelocity = new Vector2(Random.Range(-2f, 2f), Random.Range(2f, 4f));
+            WeaponPickup toDrop = aim.CurrentWeapon;
+            aim.SetCurrentWeapon(null);
 
-            WeaponAimController aimController = GetComponent<WeaponAimController>();
-            if (aimController != null)
-            {
-                aimController.SetCurrentWeapon(null);
-            }
+            // This calls the 'Drop' method in WeaponPickup
+            toDrop.Drop(transform.position, throwVelocity);
 
-            heldWeapon.Drop(dropPosition, dropVelocity);
-
-            if (playerData != null)
-            {
-                playerData.PickupWeapon(0);
-            }
+            if (playerData != null) playerData.PickupWeapon(0);
         }
-
-        // Clear the pending pickup flag on the server after drop completes
-        PendingPickup = false;
     }
 }

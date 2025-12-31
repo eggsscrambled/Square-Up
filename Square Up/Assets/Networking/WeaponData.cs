@@ -10,6 +10,7 @@ public class WeaponData : ScriptableObject
     public float spreadAmount = 1;
     public float maxSpreadDegrees = 45;
     public GameObject bulletPrefab;
+    public GameObject bulletVisualPrefab; // Visual-only bullet (no NetworkObject)
     public int damage = 10;
     public float knockbackForce = 5f;
     public bool isAutomatic = false;

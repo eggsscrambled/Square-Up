@@ -3,23 +3,21 @@ using Fusion;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
-using TMPro; // Added for TextMeshPro support
+using TMPro;
 
 public class GameManager : NetworkBehaviour
 {
     [Header("Game Settings")]
-    [SerializeField] private int minPlayers = 2;
-    [SerializeField] private int maxPlayers = 2;
-    [SerializeField] private int winsToWinMatch = 7; // First to 7 wins
+    [SerializeField] private int winsToWinMatch = 7;
     [SerializeField] private float roundStartDelay = 3f;
     [SerializeField] private float roundEndDelay = 4f;
 
     [Header("UI Track Setup")]
     [SerializeField] private GameObject roundEndUIPanel;
-    [SerializeField] private TextMeshProUGUI winStatusText; // Modernized to TextMeshPro
-    [SerializeField] private Image[] p1WinSprites; // 6 sprites for P1
-    [SerializeField] private Image[] p2WinSprites; // 6 sprites for P2
-    [SerializeField] private Image winnerCenterSprite; // The middle "7th win" sprite
+    [SerializeField] private TextMeshProUGUI winStatusText;
+    [SerializeField] private Image[] p1WinSprites;
+    [SerializeField] private Image[] p2WinSprites;
+    [SerializeField] private Image winnerCenterSprite;
 
     [Header("Spawn Positions")]
     [SerializeField] private Transform[] spawnPoints;
@@ -32,25 +30,17 @@ public class GameManager : NetworkBehaviour
     [Header("Game State")]
     [Networked] public NetworkBool GameStarted { get; set; }
     [Networked] public NetworkBool ShowRoundEndUI { get; set; }
-    [Networked] private int RoundNumber { get; set; }
-    [Networked] private TickTimer RoundTimer { get; set; }
     [Networked] private GameState CurrentState { get; set; }
-
+    [Networked] private TickTimer RoundTimer { get; set; }
     [Networked] private int LastRoundWinnerIndex { get; set; }
+
+    [Networked, Capacity(2)]
+    private NetworkArray<PlayerRef> PlayerRefs => default;
 
     [Networked, Capacity(2)]
     private NetworkArray<int> PlayerWins => default;
 
-    private enum GameState
-    {
-        WaitingForPlayers,
-        RoundStarting,
-        RoundActive,
-        RoundEnding,
-        MatchOver
-    }
-
-    private List<PlayerData> allPlayers = new List<PlayerData>();
+    private enum GameState { WaitingForPlayers, RoundStarting, RoundActive, RoundEnding, MatchOver }
 
     public override void Spawned()
     {
@@ -59,82 +49,80 @@ public class GameManager : NetworkBehaviour
             CurrentState = GameState.WaitingForPlayers;
             ShowRoundEndUI = false;
             LastRoundWinnerIndex = -1;
-            ResetMatchScores();
-        }
-
-        if (spawnPoints == null || spawnPoints.Length == 0)
-        {
-            GameObject spawnParent = GameObject.Find("SpawnPoints");
-            if (spawnParent != null)
-            {
-                spawnPoints = spawnParent.GetComponentsInChildren<Transform>()
-                    .Where(t => t != spawnParent.transform).ToArray();
-            }
+            for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
         }
     }
 
     public override void FixedUpdateNetwork()
     {
-        UpdatePlayerList();
-
-        if (Object.HasStateAuthority && allPlayers.Count == 2)
+        if (Object.HasStateAuthority)
         {
-            EnsureUniqueColors();
-        }
+            UpdatePlayerList();
 
-        if (!Object.HasStateAuthority) return;
+            if (PlayerRefs[0] != PlayerRef.None && PlayerRefs[1] != PlayerRef.None)
+                EnsureUniqueColors();
 
-        switch (CurrentState)
-        {
-            case GameState.WaitingForPlayers:
-                break;
-            case GameState.RoundStarting:
-                if (RoundTimer.ExpiredOrNotRunning(Runner)) StartRound();
-                break;
-            case GameState.RoundActive:
-                CheckForRoundEnd();
-                break;
-            case GameState.RoundEnding:
-                if (RoundTimer.ExpiredOrNotRunning(Runner)) PrepareNextRound();
-                break;
+            switch (CurrentState)
+            {
+                case GameState.RoundStarting:
+                    if (RoundTimer.ExpiredOrNotRunning(Runner)) StartRound();
+                    break;
+                case GameState.RoundActive:
+                    CheckForRoundEnd();
+                    break;
+                case GameState.RoundEnding:
+                    if (RoundTimer.ExpiredOrNotRunning(Runner)) PrepareNextRound();
+                    break;
+            }
         }
     }
 
     public override void Render()
     {
-        if (roundEndUIPanel != null)
-        {
-            roundEndUIPanel.SetActive(ShowRoundEndUI);
-        }
+        if (roundEndUIPanel != null) roundEndUIPanel.SetActive(ShowRoundEndUI);
 
-        if (ShowRoundEndUI && allPlayers.Count == 2)
+        if (ShowRoundEndUI && PlayerRefs[0] != PlayerRef.None && PlayerRefs[1] != PlayerRef.None)
         {
             UpdateWinTrackUI();
             UpdateWinStatusText();
         }
     }
 
+    private void UpdatePlayerList()
+    {
+        var activePlayers = Runner.ActivePlayers.OrderBy(p => p.RawEncoded).ToList();
+        for (int i = 0; i < 2; i++)
+        {
+            if (i < activePlayers.Count) PlayerRefs.Set(i, activePlayers[i]);
+            else PlayerRefs.Set(i, PlayerRef.None);
+        }
+    }
+
+    private PlayerData GetPlayerData(int index)
+    {
+        if (index < 0 || index >= PlayerRefs.Length) return null;
+        PlayerRef pRef = PlayerRefs[index];
+        if (pRef == PlayerRef.None) return null;
+
+        NetworkObject pObj = Runner.GetPlayerObject(pRef);
+        return pObj != null ? pObj.GetComponent<PlayerData>() : null;
+    }
+
     private void UpdateWinTrackUI()
     {
-        Color p1Color = allPlayers[0].GetActualColor();
-        Color p2Color = allPlayers[1].GetActualColor();
-        Color fadedColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+        PlayerData p1 = GetPlayerData(0);
+        PlayerData p2 = GetPlayerData(1);
+        if (p1 == null || p2 == null) return;
 
-        // Update P1 Icons 
-        for (int i = 0; i < p1WinSprites.Length; i++)
-        {
-            p1WinSprites[i].color = (PlayerWins[0] > i) ? p1Color : fadedColor;
-        }
+        Color p1Col = p1.GetActualColor();
+        Color p2Col = p2.GetActualColor();
+        Color faded = new Color(0.2f, 0.2f, 0.2f, 0.5f);
 
-        // Update P2 Icons
-        for (int i = 0; i < p2WinSprites.Length; i++)
-        {
-            p2WinSprites[i].color = (PlayerWins[1] > i) ? p2Color : fadedColor;
-        }
+        for (int i = 0; i < p1WinSprites.Length; i++) p1WinSprites[i].color = (PlayerWins[0] > i) ? p1Col : faded;
+        for (int i = 0; i < p2WinSprites.Length; i++) p2WinSprites[i].color = (PlayerWins[1] > i) ? p2Col : faded;
 
-        // Center Sprite logic
-        if (PlayerWins[0] >= winsToWinMatch) winnerCenterSprite.color = p1Color;
-        else if (PlayerWins[1] >= winsToWinMatch) winnerCenterSprite.color = p2Color;
+        if (PlayerWins[0] >= winsToWinMatch) winnerCenterSprite.color = p1Col;
+        else if (PlayerWins[1] >= winsToWinMatch) winnerCenterSprite.color = p2Col;
         else winnerCenterSprite.color = Color.white;
     }
 
@@ -149,8 +137,9 @@ public class GameManager : NetworkBehaviour
         }
         else
         {
+            PlayerData winner = GetPlayerData(LastRoundWinnerIndex);
             winStatusText.text = $"PLAYER {LastRoundWinnerIndex + 1} WINS ROUND!";
-            winStatusText.color = allPlayers[LastRoundWinnerIndex].GetActualColor();
+            if (winner != null) winStatusText.color = winner.GetActualColor();
         }
 
         if (CurrentState == GameState.MatchOver && LastRoundWinnerIndex != -1)
@@ -161,20 +150,21 @@ public class GameManager : NetworkBehaviour
 
     private void EnsureUniqueColors()
     {
-        if (allPlayers[0].PlayerColorIndex == allPlayers[1].PlayerColorIndex)
+        PlayerData p1 = GetPlayerData(0);
+        PlayerData p2 = GetPlayerData(1);
+        if (p1 != null && p2 != null && p1.PlayerColorIndex == p2.PlayerColorIndex)
         {
-            allPlayers[1].PlayerColorIndex = (allPlayers[1].PlayerColorIndex + 1) % 10;
+            p2.PlayerColorIndex = (p2.PlayerColorIndex + 1) % 10;
         }
     }
 
     public void StartGame()
     {
         if (!Object.HasStateAuthority || GameStarted) return;
-        if (allPlayers.Count != 2) return;
+        if (Runner.ActivePlayers.Count() < 2) return;
 
         GameStarted = true;
-        RoundNumber = 1;
-        ResetMatchScores();
+        for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
         PrepareNextRound();
     }
 
@@ -188,110 +178,88 @@ public class GameManager : NetworkBehaviour
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundStartDelay);
 
         PositionPlayersAtSpawns();
-
-        foreach (var player in allPlayers)
+        for (int i = 0; i < 2; i++)
         {
-            if (player != null) player.Respawn();
+            PlayerData data = GetPlayerData(i);
+            if (data != null) data.Respawn();
         }
     }
 
-    private void StartRound()
-    {
-        CurrentState = GameState.RoundActive;
-    }
+    private void StartRound() => CurrentState = GameState.RoundActive;
 
     private void CheckForRoundEnd()
     {
-        int alivePlayers = allPlayers.Count(p => p != null && !p.Dead);
-        if (alivePlayers <= 1)
+        int aliveCount = 0;
+        int lastAliveIndex = -1;
+
+        for (int i = 0; i < 2; i++)
         {
-            EndRound();
+            PlayerData p = GetPlayerData(i);
+            if (p != null && !p.Dead)
+            {
+                aliveCount++;
+                lastAliveIndex = i;
+            }
         }
+
+        if (aliveCount <= 1) EndRound(lastAliveIndex);
     }
 
-    private void EndRound()
+    private void EndRound(int winnerIndex)
     {
         CurrentState = GameState.RoundEnding;
         ShowRoundEndUI = true;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundEndDelay);
+        LastRoundWinnerIndex = winnerIndex;
 
-        PlayerData roundWinner = allPlayers.FirstOrDefault(p => p != null && !p.Dead);
-
-        if (roundWinner != null)
+        if (winnerIndex != -1)
         {
-            LastRoundWinnerIndex = allPlayers.IndexOf(roundWinner);
-            if (LastRoundWinnerIndex != -1)
-            {
-                PlayerWins.Set(LastRoundWinnerIndex, PlayerWins[LastRoundWinnerIndex] + 1);
-            }
+            PlayerWins.Set(winnerIndex, PlayerWins[winnerIndex] + 1);
+            if (PlayerWins[winnerIndex] >= winsToWinMatch) CurrentState = GameState.MatchOver;
         }
-        else
-        {
-            LastRoundWinnerIndex = -1;
-        }
-
-        if (PlayerWins[0] >= winsToWinMatch || PlayerWins[1] >= winsToWinMatch)
-        {
-            CurrentState = GameState.MatchOver;
-        }
-        else
-        {
-            RoundNumber++;
-        }
-    }
-
-    private void ResetMatchScores()
-    {
-        for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
-    }
-
-    private void UpdatePlayerList()
-    {
-        allPlayers = FindObjectsOfType<PlayerData>()
-            .OrderBy(p => p.Object.InputAuthority.PlayerId)
-            .ToList();
     }
 
     private void PositionPlayersAtSpawns()
     {
         if (spawnPoints.Length < 2) return;
-        for (int i = 0; i < allPlayers.Count; i++)
+        for (int i = 0; i < 2; i++)
         {
-            if (allPlayers[i] != null)
-            {
-                allPlayers[i].transform.position = spawnPoints[i % spawnPoints.Length].position + Vector3.up * spawnHeight;
-            }
+            PlayerData p = GetPlayerData(i);
+            if (p != null) p.transform.position = spawnPoints[i % spawnPoints.Length].position + Vector3.up * spawnHeight;
         }
     }
 
-    // --- Weapon Helpers (DO NOT REMOVE) ---
+    // --- Weapon Helpers (FIXED) ---
     public void SpawnDroppedWeapon(WeaponData weaponData, Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
-        int weaponIndex = GetWeaponIndex(weaponData);
-        if (weaponIndex == -1 || weaponPrefabs == null || weaponIndex >= weaponPrefabs.Length) return;
+        int idx = GetWeaponIndex(weaponData);
+        if (idx == -1 || weaponPrefabs == null || idx >= weaponPrefabs.Length) return;
 
-        WeaponPickup prefab = weaponPrefabs[weaponIndex];
+        WeaponPickup prefab = weaponPrefabs[idx];
         Vector3 spawnPos = position + Vector3.up * 0.5f;
-        Vector2 throwVelocity = new Vector2(Random.Range(-3f, 3f), Random.Range(3f, 6f));
-
-        WeaponPickup droppedWeapon = Runner.Spawn(prefab, spawnPos, Quaternion.identity);
-        droppedWeapon.Drop(spawnPos, throwVelocity);
+        Vector2 throwVel = new Vector2(Random.Range(-3f, 3f), Random.Range(3f, 6f));
+        WeaponPickup dropped = Runner.Spawn(prefab, spawnPos, Quaternion.identity);
+        dropped.Drop(spawnPos, throwVel);
     }
 
-    public WeaponData GetWeaponData(int weaponIndex)
+    public WeaponData GetWeaponData(int index)
     {
-        if (weaponIndex <= 0 || availableWeapons == null) return null;
-        int arrayIndex = weaponIndex - 1;
-        return (arrayIndex >= 0 && arrayIndex < availableWeapons.Length) ? availableWeapons[arrayIndex] : null;
+        if (index <= 0 || availableWeapons == null) return null;
+        int arrayIdx = index - 1;
+
+        if (arrayIdx >= 0 && arrayIdx < availableWeapons.Length)
+            return availableWeapons[arrayIdx];
+
+        return null;
     }
 
-    public int GetWeaponIndex(WeaponData weaponData)
+    public int GetWeaponIndex(WeaponData data)
     {
-        if (availableWeapons == null || weaponData == null) return -1;
+        if (availableWeapons == null || data == null) return -1;
         for (int i = 0; i < availableWeapons.Length; i++)
         {
-            if (availableWeapons[i] == weaponData) return i;
+            if (availableWeapons[i] == data) return i;
         }
         return -1;
     }
