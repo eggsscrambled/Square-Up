@@ -295,6 +295,7 @@ MonoBehaviour:
   dashSpeed: 100
   dashDuration: 0.1
   dashCooldown: 5
+  recoilDecaySpeed: 45
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0

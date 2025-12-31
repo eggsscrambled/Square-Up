@@ -10,6 +10,7 @@ public class WeaponAimController : NetworkBehaviour
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
+    private PlayerController _playerController;
     private GameManager _gameManager;
     private bool _hasFiredThisFrame = false;
 
@@ -19,6 +20,7 @@ public class WeaponAimController : NetworkBehaviour
     public override void Spawned()
     {
         _playerData = GetComponent<PlayerData>();
+        _playerController = GetComponent<PlayerController>();
         _gameManager = FindObjectOfType<GameManager>();
     }
 
@@ -105,6 +107,21 @@ public class WeaponAimController : NetworkBehaviour
             bulletDirections[i] = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
         }
 
+        // Apply recoil on both host and client (will be sent to state authority)
+        if (_playerController != null && weaponData.recoilForce > 0)
+        {
+            Vector2 recoilDirection = -aimDirection.normalized * weaponData.recoilForce;
+
+            if (Object.HasStateAuthority)
+            {
+                _playerController.ApplyRecoil(recoilDirection);
+            }
+            else
+            {
+                RPC_ApplyRecoil(recoilDirection);
+            }
+        }
+
         if (Object.HasStateAuthority)
         {
             SpawnFunctionalProjectiles(spawnPos, weaponData, bulletDirections);
@@ -151,6 +168,15 @@ public class WeaponAimController : NetworkBehaviour
             {
                 proj.Initialize(weaponData, direction, Object.InputAuthority);
             }
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_ApplyRecoil(Vector2 recoilDirection)
+    {
+        if (_playerController != null)
+        {
+            _playerController.ApplyRecoil(recoilDirection);
         }
     }
 

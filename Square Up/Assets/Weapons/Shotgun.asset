@@ -22,5 +22,5 @@ MonoBehaviour:
   damage: 25
   knockbackForce: 50
   isAutomatic: 0
-  recoilForce: 50
+  recoilForce: 200
   bulletLifetime: 0.14

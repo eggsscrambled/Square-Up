@@ -6,7 +6,7 @@ public struct NetworkInputData : INetworkInput
 {
     public Vector2 movementInput;
     public Vector2 aimDirection;
-    public Vector2 mouseWorldPosition; // NEW: Add mouse world position
+    public Vector2 mouseWorldPosition;
     public NetworkBool fire;
     public NetworkBool wasFirePressedLastTick;
     public NetworkBool pickup;
@@ -31,6 +31,9 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float dashDuration = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
+    [Header("Recoil")]
+    [SerializeField] private float recoilDecaySpeed = 10f;
+
     [Header("Collision")]
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private float collisionRadius = 0.5f;
@@ -40,6 +43,7 @@ public class PlayerController : NetworkBehaviour
 
     // Networked state
     [Networked] private Vector2 Velocity { get; set; }
+    [Networked] private Vector2 RecoilVelocity { get; set; }
     [Networked] private TickTimer DashTimer { get; set; }
     [Networked] private TickTimer DashCooldownTimer { get; set; }
     [Networked] private Vector2 DashDirection { get; set; }
@@ -108,6 +112,12 @@ public class PlayerController : NetworkBehaviour
                 }
             }
 
+            // Apply recoil to velocity
+            newVelocity += RecoilVelocity;
+
+            // Decay recoil over time
+            RecoilVelocity = Vector2.Lerp(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
+
             Velocity = newVelocity;
 
             // Move the transform
@@ -124,6 +134,7 @@ public class PlayerController : NetworkBehaviour
             {
                 // Stop velocity if we hit something
                 Velocity = Vector2.zero;
+                RecoilVelocity = Vector2.zero;
             }
 
             // Handle rotation
@@ -153,6 +164,17 @@ public class PlayerController : NetworkBehaviour
     }
 
     /// <summary>
+    /// Apply recoil force to the player. Should only be called by state authority.
+    /// </summary>
+    public void ApplyRecoil(Vector2 recoilForce)
+    {
+        if (Object.HasStateAuthority)
+        {
+            RecoilVelocity += recoilForce;
+        }
+    }
+
+    /// <summary>
     /// Returns the dash cooldown progress as a normalized value (0-1).
     /// 0 = cooldown is ready (dash available)
     /// 1 = cooldown just started (dash not available)
@@ -179,10 +201,17 @@ public class PlayerController : NetworkBehaviour
             Gizmos.DrawLine(transform.position, transform.position + new Vector3(Velocity.x, Velocity.y, 0));
         }
 
+        // Draw recoil velocity vector
+        if (Application.isPlaying && RecoilVelocity.magnitude > 0.01f)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, transform.position + new Vector3(RecoilVelocity.x, RecoilVelocity.y, 0));
+        }
+
         // Draw dash direction when dashing
         if (Application.isPlaying && IsDashing)
         {
-            Gizmos.color = Color.red;
+            Gizmos.color = Color.magenta;
             Gizmos.DrawLine(transform.position, transform.position + new Vector3(DashDirection.x, DashDirection.y, 0) * 2f);
         }
     }
