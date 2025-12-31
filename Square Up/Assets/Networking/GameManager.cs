@@ -11,6 +11,7 @@ public class GameManager : NetworkBehaviour
     [SerializeField] private int winsToWinMatch = 7;
     [SerializeField] private float roundStartDelay = 3f;
     [SerializeField] private float roundEndDelay = 4f;
+    [SerializeField] private float matchEndDelay = 6.7f;
 
     [Header("UI Track Setup")]
     [SerializeField] private GameObject roundEndUIPanel;
@@ -72,6 +73,9 @@ public class GameManager : NetworkBehaviour
                     break;
                 case GameState.RoundEnding:
                     if (RoundTimer.ExpiredOrNotRunning(Runner)) PrepareNextRound();
+                    break;
+                case GameState.MatchOver:
+                    if (RoundTimer.ExpiredOrNotRunning(Runner)) ReturnToMenu();
                     break;
             }
         }
@@ -209,13 +213,24 @@ public class GameManager : NetworkBehaviour
     {
         CurrentState = GameState.RoundEnding;
         ShowRoundEndUI = true;
-        RoundTimer = TickTimer.CreateFromSeconds(Runner, roundEndDelay);
         LastRoundWinnerIndex = winnerIndex;
 
         if (winnerIndex != -1)
         {
             PlayerWins.Set(winnerIndex, PlayerWins[winnerIndex] + 1);
-            if (PlayerWins[winnerIndex] >= winsToWinMatch) CurrentState = GameState.MatchOver;
+            if (PlayerWins[winnerIndex] >= winsToWinMatch)
+            {
+                CurrentState = GameState.MatchOver;
+                RoundTimer = TickTimer.CreateFromSeconds(Runner, matchEndDelay);
+            }
+            else
+            {
+                RoundTimer = TickTimer.CreateFromSeconds(Runner, roundEndDelay);
+            }
+        }
+        else
+        {
+            RoundTimer = TickTimer.CreateFromSeconds(Runner, roundEndDelay);
         }
     }
 
@@ -227,6 +242,17 @@ public class GameManager : NetworkBehaviour
             PlayerData p = GetPlayerData(i);
             if (p != null) p.transform.position = spawnPoints[i % spawnPoints.Length].position + Vector3.up * spawnHeight;
         }
+    }
+
+    private async void ReturnToMenu()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        // Shutdown the runner which will kick all players and return to menu
+        await Runner.Shutdown();
+
+        // Load scene index 0 (menu scene)
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
     // --- Weapon Helpers (FIXED) ---

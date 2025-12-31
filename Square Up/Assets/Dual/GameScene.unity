@@ -187,6 +187,7 @@ MonoBehaviour:
   winsToWinMatch: 7
   roundStartDelay: 3
   roundEndDelay: 3
+  matchEndDelay: 6.7
   roundEndUIPanel: {fileID: 5020246103609687814}
   winStatusText: {fileID: 293641101}
   p1WinSprites:
@@ -1780,6 +1781,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Paranoia 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6959150348708910303, guid: a8bf38243ce6ff54fa5d389bc53fbce6, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: f0254e5e09110814981a9a50ab58c95a, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2026,6 +2031,50 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 4.67, y: 6.59, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1984043521
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1984043523}
+  - component: {fileID: 1984043522}
+  m_Layer: 0
+  m_Name: PredictedBulletManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1984043522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1984043521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e1dd8acfd6bed64489368ff50ccae26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PredictedBulletManager
+--- !u!4 &1984043523
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1984043521}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3943,3 +3992,4 @@ SceneRoots:
   - {fileID: 2092583837}
   - {fileID: 2135050691}
   - {fileID: 1619105593}
+  - {fileID: 1984043523}

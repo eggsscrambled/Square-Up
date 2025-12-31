@@ -6,12 +6,13 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
     [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
+    [Networked] private int nextBulletId { get; set; }
 
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
 
-    // Client-side fire rate tracking for predicted bullets
     private TickTimer _clientFireRateTimer;
+    private int _clientNextBulletId = 0;
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
@@ -33,7 +34,6 @@ public class WeaponAimController : NetworkBehaviour
 
         if (GetInput(out NetworkInputData input))
         {
-            // Update Aiming
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
@@ -69,18 +69,23 @@ public class WeaponAimController : NetworkBehaviour
                     Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
                     Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
 
+                    // Generate bullet ID for this shot
+                    int bulletId;
                     if (Object.HasStateAuthority)
                     {
+                        bulletId = nextBulletId;
+                        nextBulletId += data.bulletAmount; // Reserve IDs for all bullets in this shot
                         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
                         if (_playerController != null) _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
                     }
                     else
                     {
+                        bulletId = _clientNextBulletId;
+                        _clientNextBulletId += data.bulletAmount;
                         _clientFireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
                     }
 
-                    // Use the tick from the input - this is the SAME value on client and server
-                    Fire(baseAimDir, data, spawnPos, input.inputTick);
+                    Fire(baseAimDir, data, spawnPos, input.inputTick, bulletId);
                 }
             }
 
@@ -100,13 +105,13 @@ public class WeaponAimController : NetworkBehaviour
         Destroy(flash, 1.0f);
     }
 
-    private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos, int seed)
+    private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos, int seed, int startBulletId)
     {
-        Debug.Log($"[Fire] Using seed: {seed}, HasStateAuthority: {Object.HasStateAuthority}");
+        Debug.Log($"[Fire] Using seed: {seed}, StartBulletId: {startBulletId}, HasStateAuthority: {Object.HasStateAuthority}");
 
         for (int i = 0; i < data.bulletAmount; i++)
         {
-            // Each bullet in the burst gets seed + index for deterministic spread
+            int bulletId = startBulletId + i;
             Random.InitState(seed + i);
 
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
@@ -120,7 +125,7 @@ public class WeaponAimController : NetworkBehaviour
                 var predBullet = predicted.GetComponent<PredictedBullet>();
                 if (predBullet != null)
                 {
-                    predBullet.Initialize(spreadDir * data.bulletSpeed, data.bulletLifetime);
+                    predBullet.Initialize(spreadDir * data.bulletSpeed, data.bulletLifetime, bulletId);
                 }
             }
 
@@ -129,7 +134,7 @@ public class WeaponAimController : NetworkBehaviour
                 Runner.Spawn(data.bulletPrefab, spawnPos, spawnRotation, Object.InputAuthority, (runner, obj) =>
                 {
                     var proj = obj.GetComponent<NetworkedProjectile>();
-                    proj.Initialize(data, spreadDir * data.bulletSpeed, Object.InputAuthority);
+                    proj.Initialize(data, spreadDir * data.bulletSpeed, Object.InputAuthority, bulletId);
                 });
             }
         }
@@ -149,9 +154,8 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = weapon;
             CurrentWeaponId = weapon != null ? weapon.Object.Id : default;
-            wasFirePressedLastFrame = false; // Reset button state when switching weapons
+            wasFirePressedLastFrame = false;
         }
-        // Reset client timer when switching weapons
         _clientFireRateTimer = TickTimer.None;
     }
 
@@ -161,9 +165,8 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = null;
             CurrentWeaponId = default;
-            wasFirePressedLastFrame = false; // Reset button state when clearing weapon
+            wasFirePressedLastFrame = false;
         }
-        // Reset client timer when clearing weapon
         _clientFireRateTimer = TickTimer.None;
     }
 
