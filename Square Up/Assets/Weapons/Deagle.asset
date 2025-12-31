@@ -23,6 +23,6 @@ MonoBehaviour:
   muzzleFlashPrefab: {fileID: 3317814402342211334, guid: 3a6c51419ce004241a1bdaa05652bf96, type: 3}
   damage: 35
   knockbackForce: 45
-  isAutomatic: 1
+  isAutomatic: 0
   recoilForce: 5
   bulletLifetime: 0.35
