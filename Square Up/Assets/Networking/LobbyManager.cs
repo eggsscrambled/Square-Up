@@ -79,6 +79,21 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         if (result.Ok) runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
     }
 
+    public async void StartClient()
+    {
+        var result = await runner.StartGame(new StartGameArgs()
+        {
+            GameMode = GameMode.Client,
+            SessionName = "TestRoom", // Must match the Host's SessionName
+            SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
+        });
+
+        if (!result.Ok)
+        {
+            Debug.LogError($"Failed to Join: {result.ShutdownReason}");
+        }
+    }
+
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         if (runner.IsServer)
