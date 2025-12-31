@@ -1,8 +1,10 @@
 using UnityEngine;
+using Fusion;
 
 public class Portal : MonoBehaviour
 {
     public Transform teleportPos;
+    public ParticleSystem Particles;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -11,9 +13,13 @@ public class Portal : MonoBehaviour
 
     private void OnColliderEntered(Collider2D collider)
     {
+
+
         Transform portalOBJ = collider.gameObject.GetComponent<Transform>();
 
         portalOBJ.position = new Vector2(teleportPos.position.x,portalOBJ.position.y);
+
+        Particles.Play();
     }
 
 }
