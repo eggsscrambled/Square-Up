@@ -105,8 +105,7 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
-        // FIXED: Do a fresh check instead of relying on NearbyPlayer
-        // This ensures we always check current proximity when pickup is requested
+        // Do a fresh check to validate proximity
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
         Debug.Log($"Found {nearbyColliders.Length} colliders in pickup range");
 
@@ -221,10 +220,22 @@ public class WeaponPickup : NetworkBehaviour
 
         transform.SetParent(null);
 
+        // FIXED: Keep collider enabled so other clients can detect it
+        // Just disable physics simulation
         if (rb != null)
             rb.simulated = false;
+
+        // Make collider a trigger so it doesn't physically interact
         if (col != null)
-            col.enabled = false;
+        {
+            col.isTrigger = true;
+        }
+
+        // Hide the visual if configured
+        if (hideWhenHeld && spriteRenderer != null)
+        {
+            spriteRenderer.enabled = false;
+        }
 
         Debug.Log($"Player {player.Object.InputAuthority} picked up {weaponData.weaponID}");
     }
@@ -261,8 +272,14 @@ public class WeaponPickup : NetworkBehaviour
             rb.simulated = true;
             rb.linearVelocity = throwVelocity;
         }
+
+        // Re-enable collider as non-trigger
         if (col != null)
+        {
+            col.isTrigger = false;
             col.enabled = true;
+        }
+
         if (spriteRenderer != null)
         {
             spriteRenderer.enabled = true;
@@ -282,7 +299,7 @@ public class WeaponPickup : NetworkBehaviour
 
     public bool IsPlayerNearby(PlayerRef player)
     {
-        // FIXED: Check proximity directly instead of relying on cached state
+        // Check proximity directly
         if (IsPickedUp) return false;
 
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
