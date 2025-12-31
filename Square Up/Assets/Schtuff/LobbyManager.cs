@@ -1,9 +1,10 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 using Fusion;
 using Fusion.Sockets;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -43,8 +44,10 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 mousePos.z = 0; // Make sure z is 0 for 2D
 
-                // Get local player position
-                GameObject localPlayer = GameObject.FindGameObjectWithTag("Player"); // Or however you track local player
+                // Get local player position using input authority
+                PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
+                    .FirstOrDefault(p => p.Object != null && p.Object.HasInputAuthority);
+
                 if (localPlayer != null)
                 {
                     Vector2 direction = (mousePos - localPlayer.transform.position);

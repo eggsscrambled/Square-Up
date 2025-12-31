@@ -1,125 +1,106 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Fusion;
 
 public class WeaponAimController : NetworkBehaviour
 {
-    private WeaponPickup currentWeapon;
-    private PlayerData playerData;
-    private TickTimer fireRateTimer;
-    private GameManager gameManager;
+    [Networked] public NetworkId CurrentWeaponId { get; set; }
+    [Networked] private TickTimer fireRateTimer { get; set; }
 
-    private void Awake()
-    {
-        playerData = GetComponent<PlayerData>();
-    }
+    private WeaponPickup _currentWeapon;
+    private PlayerData _playerData;
+    private GameManager _gameManager;
 
     public override void Spawned()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        _playerData = GetComponent<PlayerData>();
+        _gameManager = FindObjectOfType<GameManager>();
     }
 
     public override void FixedUpdateNetwork()
     {
-        // Only process for players with input authority
-        if (!Object.HasInputAuthority)
+        // 1. Resolve the weapon reference using the Networked ID
+        // This is much faster than FindObjectOfType and works for all clients
+        ResolveWeaponReference();
+
+        if (_currentWeapon == null || _playerData == null || _playerData.Dead)
             return;
 
-        if (playerData == null || !playerData.HasWeapon())
-            return;
-
-        // Find the weapon if we don't have a reference
-        if (currentWeapon == null)
-        {
-            currentWeapon = FindObjectOfType<WeaponPickup>();
-            // Make sure it's actually our weapon (picked up)
-            if (currentWeapon != null && !currentWeapon.GetIsPickedUp())
-            {
-                currentWeapon = null;
-            }
-        }
-
-        if (currentWeapon == null)
-            return;
-
-        // Get the networked input
+        // 2. Get Input (Standard Fusion Pattern)
         if (GetInput(out NetworkInputData input))
         {
-            // Send aim direction to weapon via RPC
-            if (input.aimDirection.magnitude > 0.1f)
+            // Update Aim (State Authority handles the actual rotation)
+            if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
-                RPC_UpdateWeaponAim(input.aimDirection);
+                _currentWeapon.UpdateAimDirection(input.aimDirection);
             }
 
-            // Handle firing
-            if (input.fire && !playerData.Dead)
+            // 3. Handle Firing (Logic runs on both Client and Server for prediction)
+            if (input.fire)
             {
-                WeaponData weaponData = currentWeapon.GetWeaponData();
+                WeaponData data = _currentWeapon.GetWeaponData();
 
-                if (weaponData != null)
+                if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
                 {
-                    // Check if we can fire based on fire rate
-                    if (fireRateTimer.ExpiredOrNotRunning(Runner))
-                    {
-                        RPC_Fire(input.aimDirection);
-                        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
-                    }
+                    // Reset Timer
+                    fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+
+                    // Execute Fire Logic
+                    FireWeapon(input.aimDirection, data);
                 }
             }
         }
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_UpdateWeaponAim(Vector2 aimDirection)
+    private void FireWeapon(Vector2 aimDirection, WeaponData weaponData)
     {
-        if (currentWeapon != null)
+        if (aimDirection.magnitude < 0.1f) return;
+
+        // FIX 1: Ensure we are finding the FireOrigin on the weapon instance the Server sees
+        Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
+
+        // Fallback to weapon position if FireOrigin is missing
+        Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
+
+        // Only the State Authority (Server/Host) should perform the actual Spawn
+        if (Object.HasStateAuthority)
         {
-            currentWeapon.UpdateAimDirection(aimDirection);
+            for (int i = 0; i < weaponData.bulletAmount; i++)
+            {
+                Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
+
+                // FIX 2: Explicitly pass the rotation so it doesn't default to Zero
+                Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+                NetworkObject projectile = Runner.Spawn(
+                    weaponData.bulletPrefab,
+                    spawnPos,
+                    spawnRotation,
+                    Object.InputAuthority // This ensures the client still "owns" the credit for the shot
+                );
+
+                // FIX 3: Ensure the Projectile component is initialized on the Server
+                if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
+                {
+                    proj.Initialize(weaponData, direction, Object.InputAuthority);
+                }
+            }
         }
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_Fire(Vector2 aimDirection)
+    private void ResolveWeaponReference()
     {
-        if (currentWeapon == null || playerData.Dead)
-            return;
-
-        WeaponData weaponData = currentWeapon.GetWeaponData();
-        if (weaponData == null || weaponData.bulletPrefab == null)
-            return;
-
-        if (aimDirection.magnitude < 0.1f)
-            return;
-
-        // Get the FireOrigin from the weapon
-        Transform fireOrigin = currentWeapon.transform.Find("FireOrigin");
-        if (fireOrigin == null)
+        // If our local reference doesn't match our networked ID, find it once
+        if (CurrentWeaponId != default && (_currentWeapon == null || _currentWeapon.Object.Id != CurrentWeaponId))
         {
-            Debug.LogError($"FireOrigin not found on weapon {weaponData.weaponID}!");
-            return;
-        }
-
-        // Fire multiple bullets if bulletAmount > 1
-        for (int i = 0; i < weaponData.bulletAmount; i++)
-        {
-            // Calculate spread
-            Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-
-            // Spawn the projectile at the FireOrigin position
-            NetworkObject projectile = Runner.Spawn(
-                weaponData.bulletPrefab,
-                fireOrigin.position,
-                Quaternion.identity,
-                Object.InputAuthority
-            );
-
-            // Initialize the projectile
-            if (projectile.TryGetComponent<NetworkedProjectile>(out NetworkedProjectile proj))
+            if (Runner.TryFindObject(CurrentWeaponId, out NetworkObject weaponObj))
             {
-                proj.Initialize(weaponData, direction, Object.InputAuthority);
+                _currentWeapon = weaponObj.GetComponent<WeaponPickup>();
             }
         }
-
-        Debug.Log($"Player {Object.InputAuthority} fired {weaponData.weaponID} from FireOrigin");
+        else if (CurrentWeaponId == default)
+        {
+            _currentWeapon = null;
+        }
     }
 
     private Vector2 CalculateSpreadDirection(Vector2 baseDirection, float spreadAmount, float maxSpread)
@@ -129,28 +110,27 @@ public class WeaponAimController : NetworkBehaviour
         float spreadAngle = Mathf.Min(spreadAmount, maxSpread);
         float randomAngle = Random.Range(-spreadAngle, spreadAngle);
 
-        // Rotate the base direction by the random angle
         float angle = Mathf.Atan2(baseDirection.y, baseDirection.x) * Mathf.Rad2Deg;
         angle += randomAngle;
 
-        return new Vector2(
-            Mathf.Cos(angle * Mathf.Deg2Rad),
-            Mathf.Sin(angle * Mathf.Deg2Rad)
-        );
+        return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
 
     public void SetCurrentWeapon(WeaponPickup weapon)
     {
-        currentWeapon = weapon;
+        if (Object.HasStateAuthority)
+        {
+            _currentWeapon = weapon;
+            CurrentWeaponId = weapon != null ? weapon.Object.Id : default;
+        }
     }
 
     public void ClearCurrentWeapon()
     {
-        currentWeapon = null;
-    }
-
-    public WeaponPickup GetCurrentWeapon()
-    {
-        return currentWeapon;
+        if (Object.HasStateAuthority)
+        {
+            _currentWeapon = null;
+            CurrentWeaponId = default; // Replaces .None
+        }
     }
 }

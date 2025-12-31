@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Fusion;
 
 public class WeaponPickup : NetworkBehaviour
@@ -15,7 +15,7 @@ public class WeaponPickup : NetworkBehaviour
     [SerializeField] private float floatAmount = 0.3f;
 
     [Header("Pickup Settings")]
-    [SerializeField] private float orbitRadius = 0.5f; // Distance from player center
+    [SerializeField] private float orbitRadius = 0.5f;
     [SerializeField] private bool hideWhenHeld = true;
     [SerializeField] private bool rotateWithAim = true;
     [SerializeField] private bool flipSpriteWhenAimingLeft = true;
@@ -23,8 +23,8 @@ public class WeaponPickup : NetworkBehaviour
     [Networked] private NetworkBool IsPickedUp { get; set; }
     [Networked] private PlayerRef Owner { get; set; }
     [Networked] private Vector2 AimDirection { get; set; }
+    [Networked] private PlayerRef NearbyPlayer { get; set; }
 
-    private PlayerRef nearbyPlayer = PlayerRef.None;
     private Rigidbody2D rb;
     private Collider2D col;
     private Vector3 startPosition;
@@ -32,6 +32,8 @@ public class WeaponPickup : NetworkBehaviour
     private GameManager gameManager;
     private Transform originalParent;
     private Transform ownerTransform;
+    private Transform fireOrigin;
+    private Vector3 originalFireOriginLocalPos;
 
     private void Awake()
     {
@@ -41,6 +43,12 @@ public class WeaponPickup : NetworkBehaviour
             spriteRenderer = GetComponent<SpriteRenderer>();
 
         originalParent = transform.parent;
+
+        fireOrigin = transform.Find("FireOrigin");
+        if (fireOrigin != null)
+        {
+            originalFireOriginLocalPos = fireOrigin.localPosition;
+        }
     }
 
     public override void Spawned()
@@ -49,7 +57,8 @@ public class WeaponPickup : NetworkBehaviour
         {
             IsPickedUp = false;
             Owner = PlayerRef.None;
-            AimDirection = Vector2.right; // Default aim right
+            AimDirection = Vector2.right;
+            NearbyPlayer = PlayerRef.None;
         }
 
         startPosition = transform.position;
@@ -61,7 +70,20 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
+    // ✅ FIXED: Use RpcSources.All since weapon doesn't have InputAuthority
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestPickup(PlayerRef player, RpcInfo info = default)
+    {
+        // Security check: only allow the requesting player to pick up
+        if (info.Source != player)
+        {
+            Debug.LogWarning($"Player {info.Source} tried to pickup for player {player} - rejected");
+            return;
+        }
 
+        Debug.Log($"[RPC] Pickup requested by player {player}");
+        TryPickupOnServer(player);
+    }
 
     public void TryPickup(PlayerRef player)
     {
@@ -69,19 +91,26 @@ public class WeaponPickup : NetworkBehaviour
 
         if (!Object.HasStateAuthority)
         {
-            Debug.Log("No state authority");
+            Debug.Log("No state authority - calling RPC");
+            RPC_RequestPickup(player);
             return;
         }
 
+        // If we have state authority, process directly
+        TryPickupOnServer(player);
+    }
+
+    private void TryPickupOnServer(PlayerRef player)
+    {
         if (IsPickedUp)
         {
             Debug.Log("Already picked up");
             return;
         }
 
-        if (nearbyPlayer != player)
+        if (NearbyPlayer != player)
         {
-            Debug.Log($"Player {player} not nearby. Nearby player is {nearbyPlayer}");
+            Debug.Log($"Player {player} not nearby. Nearby player is {NearbyPlayer}");
             return;
         }
 
@@ -107,25 +136,20 @@ public class WeaponPickup : NetworkBehaviour
 
         if (!IsPickedUp)
         {
-            // Check for nearby players only when not picked up
             CheckForNearbyPlayers();
         }
         else if (ownerTransform != null)
         {
-            // Position weapon in orbit around player and rotate towards aim
             UpdateWeaponTransform();
         }
     }
 
     private void CheckForNearbyPlayers()
     {
-        // Check for nearby players
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
 
         PlayerRef closestPlayer = PlayerRef.None;
         float closestDistance = float.MaxValue;
-
-        Debug.Log($"Weapon at {transform.position}, checking {nearbyColliders.Length} colliders");
 
         foreach (var col in nearbyColliders)
         {
@@ -133,7 +157,6 @@ public class WeaponPickup : NetworkBehaviour
             if (player != null && !player.Dead)
             {
                 float distance = Vector3.Distance(transform.position, player.transform.position);
-                Debug.Log($"Found player at distance {distance}");
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
@@ -142,27 +165,29 @@ public class WeaponPickup : NetworkBehaviour
             }
         }
 
-        nearbyPlayer = closestPlayer;
-        if (closestPlayer != PlayerRef.None)
-        {
-            Debug.Log($"Nearby player detected: {closestPlayer}");
-        }
+        NearbyPlayer = closestPlayer;
     }
 
     private void Update()
     {
         if (!IsPickedUp)
         {
-            // Floating animation when not picked up
             floatTimer += Time.deltaTime * floatSpeed;
             float yOffset = Mathf.Sin(floatTimer) * floatAmount;
             transform.position = startPosition + Vector3.up * yOffset;
         }
 
-        // Visual sprite flipping (non-networked, cosmetic only)
         if (IsPickedUp && flipSpriteWhenAimingLeft && spriteRenderer != null)
         {
-            spriteRenderer.flipY = AimDirection.x < 0;
+            bool shouldFlip = AimDirection.x < 0;
+            spriteRenderer.flipY = shouldFlip;
+
+            if (fireOrigin != null)
+            {
+                Vector3 fireOriginPos = fireOrigin.localPosition;
+                fireOriginPos.y = shouldFlip ? -originalFireOriginLocalPos.y : originalFireOriginLocalPos.y;
+                fireOrigin.localPosition = fireOriginPos;
+            }
         }
     }
 
@@ -171,13 +196,11 @@ public class WeaponPickup : NetworkBehaviour
         if (AimDirection.magnitude < 0.1f)
             return;
 
-        // Position weapon in a circle around the player based on aim direction
         Vector3 targetPosition = ownerTransform.position + (Vector3)(AimDirection.normalized * orbitRadius);
         transform.position = targetPosition;
 
         if (rotateWithAim)
         {
-            // Rotate weapon to face aim direction
             float angle = Mathf.Atan2(AimDirection.y, AimDirection.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
         }
@@ -223,17 +246,14 @@ public class WeaponPickup : NetworkBehaviour
         Owner = player.Object.InputAuthority;
         ownerTransform = player.transform;
 
-        // Notify the player's aim controller
         WeaponAimController aimController = player.GetComponent<WeaponAimController>();
         if (aimController != null)
         {
             aimController.SetCurrentWeapon(this);
         }
 
-        // Don't parent to player - we'll position manually in FixedUpdateNetwork
         transform.SetParent(null);
 
-        // Disable physics
         if (rb != null)
             rb.simulated = false;
         if (col != null)
@@ -269,7 +289,6 @@ public class WeaponPickup : NetworkBehaviour
         transform.rotation = Quaternion.identity;
         startPosition = position;
 
-        // Re-enable physics and rendering
         if (rb != null)
         {
             rb.simulated = true;
@@ -280,7 +299,12 @@ public class WeaponPickup : NetworkBehaviour
         if (spriteRenderer != null)
         {
             spriteRenderer.enabled = true;
-            spriteRenderer.flipY = false; // Reset flip
+            spriteRenderer.flipY = false;
+        }
+
+        if (fireOrigin != null)
+        {
+            fireOrigin.localPosition = originalFireOriginLocalPos;
         }
     }
 
@@ -291,7 +315,7 @@ public class WeaponPickup : NetworkBehaviour
 
     public bool IsPlayerNearby(PlayerRef player)
     {
-        return nearbyPlayer == player && !IsPickedUp;
+        return NearbyPlayer == player && !IsPickedUp;
     }
 
     public bool GetIsPickedUp()
@@ -304,7 +328,6 @@ public class WeaponPickup : NetworkBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, pickupRadius);
 
-        // Show orbit radius when picked up
         if (IsPickedUp && ownerTransform != null)
         {
             Gizmos.color = Color.cyan;

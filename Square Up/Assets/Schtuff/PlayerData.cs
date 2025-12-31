@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Fusion;
+using UnityEngine.UI;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -11,6 +12,8 @@ public class PlayerData : NetworkBehaviour
     public int PlayerColorIndex { get; set; }
     [Networked]
     public int WeaponIndex { get; set; }
+
+    public Image healthUI;
 
     private SpriteRenderer sprite;
     private bool tagAndLayerAssigned = false;
@@ -53,6 +56,10 @@ public class PlayerData : NetworkBehaviour
         }
 
         ApplyColor();
+
+
+        healthUI.fillAmount = (Health / 100);
+
     }
 
     private void TryAssignTagAndLayer()
