@@ -111,12 +111,11 @@ public class WeaponPickup : NetworkBehaviour
         if (networkTransform != null)
         {
             networkTransform.enabled = true;
-            // Force NetworkTransform to teleport to the current position
-            // This prevents it from interpolating from the old held position
             networkTransform.Teleport(pos, transform.rotation);
         }
 
-        RPC_SyncState(false);
+        // Notify all clients of the drop with the new position
+        RPC_SyncDrop(pos, false);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -127,6 +126,22 @@ public class WeaponPickup : NetworkBehaviour
         {
             if (spriteRenderer != null) spriteRenderer.flipY = false;
             if (fireOrigin != null) fireOrigin.localPosition = originalFireOriginLocalPos;
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SyncDrop(Vector3 dropPosition, bool pickedUp)
+    {
+        // Update visual state
+        if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
+        if (spriteRenderer != null) spriteRenderer.flipY = false;
+        if (fireOrigin != null) fireOrigin.localPosition = originalFireOriginLocalPos;
+
+        // Update position for clients (host already set it in Drop())
+        if (!Object.HasStateAuthority)
+        {
+            transform.position = dropPosition;
+            startPosition = dropPosition;
         }
     }
 
