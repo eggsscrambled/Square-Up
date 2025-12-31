@@ -20,8 +20,7 @@ public class GameManager : NetworkBehaviour
     [SerializeField] private Image[] p2WinSprites;
     [SerializeField] private Image winnerCenterSprite;
 
-    [Header("Spawn Positions")]
-    [SerializeField] private Transform[] spawnPoints;
+    [Header("Spawn Settings")]
     [SerializeField] private float spawnHeight = 10f;
 
     [Header("Weapons")]
@@ -43,8 +42,13 @@ public class GameManager : NetworkBehaviour
 
     private enum GameState { WaitingForPlayers, RoundStarting, RoundActive, RoundEnding, MatchOver }
 
+    private GameObject[] spawnPoints;
+
     public override void Spawned()
     {
+        // Cache all spawn points by tag
+        spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoints");
+
         if (Object.HasStateAuthority)
         {
             CurrentState = GameState.WaitingForPlayers;
@@ -169,6 +173,10 @@ public class GameManager : NetworkBehaviour
 
         GameStarted = true;
         for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
+
+        // Teleport players to spawn points when game starts
+        PositionPlayersAtSpawns();
+
         PrepareNextRound();
     }
 
@@ -236,14 +244,22 @@ public class GameManager : NetworkBehaviour
 
     private void PositionPlayersAtSpawns()
     {
-        if (spawnPoints.Length < 2) return;
+        if (spawnPoints == null || spawnPoints.Length < 2)
+        {
+            Debug.LogWarning("Not enough spawn points tagged 'SpawnPoints'!");
+            return;
+        }
+
         for (int i = 0; i < 2; i++)
         {
             PlayerData p = GetPlayerData(i);
-            if (p != null) p.transform.position = spawnPoints[i % spawnPoints.Length].position + Vector3.up * spawnHeight;
+            if (p != null)
+            {
+                int spawnIndex = i % spawnPoints.Length;
+                p.transform.position = spawnPoints[spawnIndex].transform.position + Vector3.up * spawnHeight;
+            }
         }
     }
-
 
     private async void ReturnToMenu()
     {
