@@ -5,6 +5,8 @@ public class Portal : MonoBehaviour
 {
     public Transform teleportPos;
     public ParticleSystem Particles;
+    public AudioSource source;
+    public AudioClip portalSFX;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -20,6 +22,8 @@ public class Portal : MonoBehaviour
         portalOBJ.position = new Vector2(teleportPos.position.x,portalOBJ.position.y);
 
         Particles.Play();
+
+        source.PlayOneShot(portalSFX);
     }
 
 }
