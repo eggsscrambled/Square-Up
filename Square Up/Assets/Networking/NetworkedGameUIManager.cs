@@ -9,28 +9,29 @@ public class NetworkedGameUIManager : NetworkBehaviour
     public PlayerData localPlayer;
     public Image gunImage;
     public Image dashImage;
-
     private bool hasInitialized = false;
 
     public override void FixedUpdateNetwork()
     {
-        // Only run this logic once when game starts and we have input authority
+        // Keep trying to initialize until we succeed
         if (!hasInitialized && gm != null && gm.GameStarted && HasInputAuthority)
         {
-            InitializePlayers();
-            hasInitialized = true;
+            if (TryInitializePlayers())
+            {
+                hasInitialized = true;
+            }
         }
     }
 
-    private void InitializePlayers()
+    private bool TryInitializePlayers()
     {
         // Find all PlayerData objects in the scene
         players = FindObjectsOfType<PlayerData>();
 
         if (players.Length == 0)
         {
-            Debug.LogWarning("No PlayerData objects found in scene!");
-            return;
+            Debug.LogWarning("No PlayerData objects found yet, waiting...");
+            return false; // Try again next frame
         }
 
         // Find the local player (the one with input authority)
@@ -46,35 +47,36 @@ public class NetworkedGameUIManager : NetworkBehaviour
 
         if (localPlayer == null)
         {
-            Debug.LogWarning("Local player not found! No PlayerData has input authority.");
+            Debug.LogWarning("Local player not found yet, waiting...");
+            return false; // Try again next frame
         }
-        else
-        {
-            Debug.Log($"Initialized with {players.Length} total players");
-            OnPlayersInitialized();
-        }
+
+        Debug.Log($"Initialized with {players.Length} total players");
+        OnPlayersInitialized();
+        return true; // Successfully initialized
     }
 
-    // Override this method in derived classes or add your UI setup logic here
     protected virtual void OnPlayersInitialized()
     {
         // UI initialization code goes here
-        // Example: Update UI elements with player data
     }
 
-    // Helper method to get other players (excluding local player)
     public PlayerData[] GetOtherPlayers()
     {
         if (localPlayer == null || players == null) return new PlayerData[0];
-
         return System.Array.FindAll(players, p => p != localPlayer);
     }
 
     public void LateUpdate()
     {
-        float dashProgress = localPlayer.gameObject.GetComponent<PlayerController>().GetDashCooldownProgress();
-        dashImage.fillAmount = 1 - dashProgress;
+        // Add null check to prevent errors before initialization
+        if (localPlayer == null) return;
 
-        // reload ui stuff
+        PlayerController controller = localPlayer.gameObject.GetComponent<PlayerController>();
+        if (controller != null)
+        {
+            float dashProgress = controller.GetDashCooldownProgress();
+            dashImage.fillAmount = 1 - dashProgress;
+        }
     }
 }
