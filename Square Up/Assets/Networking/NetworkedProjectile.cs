@@ -8,27 +8,45 @@ public class NetworkedProjectile : NetworkBehaviour
     [Networked] public TickTimer LifeTime { get; set; }
     [Networked] public int Damage { get; set; }
     [Networked] public float Knockback { get; set; }
+    [Networked] public int BulletId { get; set; }
 
     [Header("Detection Layers")]
     [SerializeField] private LayerMask environmentLayer;
     [SerializeField] private LayerMask combatLayer;
 
     private TickTimer _ignoreOwnerTimer;
+    private bool _hasNotifiedPrediction = false;
 
-    public void Initialize(WeaponData data, Vector2 velocity, PlayerRef owner)
+    public void Initialize(WeaponData data, Vector2 velocity, PlayerRef owner, int bulletId)
     {
         Velocity = velocity;
         Owner = owner;
         Damage = data.damage;
         Knockback = data.knockbackForce;
+        BulletId = bulletId;
         LifeTime = TickTimer.CreateFromSeconds(Runner, data.bulletLifetime);
-
-        // Short timer to prevent the bullet from hitting the shooter immediately
         _ignoreOwnerTimer = TickTimer.CreateFromSeconds(Runner, 0.1f);
+    }
+
+    public override void Spawned()
+    {
+        // When this networked bullet spawns on the client, destroy the predicted version
+        if (!Object.HasStateAuthority && PredictedBulletManager.Instance != null)
+        {
+            PredictedBulletManager.Instance.OnNetworkedBulletSpawned(BulletId);
+            _hasNotifiedPrediction = true;
+        }
     }
 
     public override void FixedUpdateNetwork()
     {
+        // Safety check: ensure we notified prediction manager even if Spawned didn't catch it
+        if (!_hasNotifiedPrediction && !Object.HasStateAuthority && PredictedBulletManager.Instance != null)
+        {
+            PredictedBulletManager.Instance.OnNetworkedBulletSpawned(BulletId);
+            _hasNotifiedPrediction = true;
+        }
+
         if (LifeTime.Expired(Runner))
         {
             Runner.Despawn(Object);
@@ -50,7 +68,6 @@ public class NetworkedProjectile : NetworkBehaviour
         if (Runner.LagCompensation.Raycast(transform.position, Velocity.normalized, distance,
             Owner, out LagCompensatedHit hit, combatLayer, HitOptions.IncludePhysX))
         {
-            // Ignore the owner for the first few frames to prevent self-collision
             if (hit.Hitbox != null && hit.Hitbox.Root.Object.InputAuthority == Owner && !_ignoreOwnerTimer.Expired(Runner))
             {
                 // Continue movement if it's the owner and the timer hasn't cleared
@@ -66,7 +83,6 @@ public class NetworkedProjectile : NetworkBehaviour
         // 3. Apply Movement
         transform.position += (Vector3)movement;
 
-        // Update rotation to match velocity
         if (Velocity != Vector2.zero)
         {
             float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;

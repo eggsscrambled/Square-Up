@@ -8,51 +8,61 @@ public class PredictedBullet : MonoBehaviour
     [Header("Detection Layers")]
     [SerializeField] private LayerMask environmentLayer;
     [SerializeField] private LayerMask combatLayer;
+    private LayerMask collisionLayers;
 
-    private LayerMask collisionLayers; // Combined mask
+    // Unique ID to match with networked bullet
+    public int BulletId { get; private set; }
 
-    public void Initialize(Vector2 vel, float life)
+    public void Initialize(Vector2 vel, float life, int bulletId)
     {
         velocity = vel;
         lifetime = life;
-
-        // Combine both layers for collision detection
+        BulletId = bulletId;
         collisionLayers = environmentLayer | combatLayer;
+
+        // Register this predicted bullet
+        PredictedBulletManager.Instance?.RegisterPredictedBullet(this);
     }
 
     void Update()
     {
-        // Calculate movement exactly like the networked version
         Vector2 movement = velocity * Time.deltaTime;
         float distance = movement.magnitude;
 
-        // Raycast to detect collisions along the movement path (matches NetworkedProjectile logic)
         RaycastHit2D hit = Physics2D.Raycast(transform.position, velocity.normalized,
                                               distance, collisionLayers);
 
         if (hit.collider != null)
         {
-            // Position at hit point for visual accuracy
             transform.position = hit.point;
-            Destroy(gameObject);
+            DestroyPredicted();
             return;
         }
 
-        // Apply movement (matches the networked version)
         transform.position += (Vector3)movement;
 
-        // Update rotation to match velocity
         if (velocity != Vector2.zero)
         {
             float angle = Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
         }
 
-        // Handle lifetime
         lifetime -= Time.deltaTime;
         if (lifetime <= 0)
         {
-            Destroy(gameObject);
+            DestroyPredicted();
         }
+    }
+
+    private void DestroyPredicted()
+    {
+        PredictedBulletManager.Instance?.UnregisterPredictedBullet(this);
+        Destroy(gameObject);
+    }
+
+    void OnDestroy()
+    {
+        // Ensure we're unregistered even if destroyed externally
+        PredictedBulletManager.Instance?.UnregisterPredictedBullet(this);
     }
 }
