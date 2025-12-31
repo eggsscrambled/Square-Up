@@ -41,12 +41,9 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            // Check for Fire button via NetworkButtons
             bool firePressed = input.buttons.IsSet(MyButtons.Fire);
-
             WeaponData data = _currentWeapon.GetWeaponData();
 
-            // Check fire rate timer - use client timer for clients, networked timer for host
             bool canFire = Object.HasStateAuthority
                 ? fireRateTimer.ExpiredOrNotRunning(Runner)
                 : _clientFireRateTimer.ExpiredOrNotRunning(Runner);
@@ -57,12 +54,10 @@ public class WeaponAimController : NetworkBehaviour
 
                 if (data.isAutomatic)
                 {
-                    // Automatic: fire while button is held
                     shouldFire = firePressed;
                 }
                 else
                 {
-                    // Semi-automatic: fire only on button press (not held)
                     shouldFire = firePressed && !wasFirePressedLastFrame;
                 }
 
@@ -81,17 +76,14 @@ public class WeaponAimController : NetworkBehaviour
                     }
                     else
                     {
-                        // Client sets their own fire rate timer for predicted bullets
                         _clientFireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
                     }
 
-                    // Fire() runs on both host and client
-                    // Host spawns networked bullets, client spawns predicted visuals
-                    Fire(baseAimDir, data, spawnPos);
+                    // Use the tick from the input - this is the SAME value on client and server
+                    Fire(baseAimDir, data, spawnPos, input.inputTick);
                 }
             }
 
-            // Track button state for next frame (only on state authority)
             if (Object.HasStateAuthority)
             {
                 wasFirePressedLastFrame = firePressed;
@@ -108,46 +100,32 @@ public class WeaponAimController : NetworkBehaviour
         Destroy(flash, 1.0f);
     }
 
-    private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos)
+    private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos, int seed)
     {
-        // Use tick-based seed for deterministic randomness across client and server
-        int seed = Runner.Tick.Raw;
-        Random.InitState(seed);
-
-        Debug.Log($"[Fire] HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}, IsServer: {Runner.IsServer}, IsClient: {Runner.IsClient}");
+        Debug.Log($"[Fire] Using seed: {seed}, HasStateAuthority: {Object.HasStateAuthority}");
 
         for (int i = 0; i < data.bulletAmount; i++)
         {
+            // Each bullet in the burst gets seed + index for deterministic spread
+            Random.InitState(seed + i);
+
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            // Spawn predicted visual bullet ONLY for clients (not host/server)
-            // Clients experience network delay and need instant visual feedback
-            // Host already has state authority and sees networked bullets instantly
             bool isClient = !Object.HasStateAuthority && Object.HasInputAuthority;
-
-            Debug.Log($"[Fire] Bullet {i}: isClient={isClient}, bulletVisualPrefab={(data.bulletVisualPrefab != null ? "exists" : "NULL")}");
 
             if (isClient && data.bulletVisualPrefab != null)
             {
-                Debug.Log($"[Fire] SPAWNING PREDICTED BULLET at {spawnPos}");
                 GameObject predicted = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRotation);
                 var predBullet = predicted.GetComponent<PredictedBullet>();
                 if (predBullet != null)
                 {
                     predBullet.Initialize(spreadDir * data.bulletSpeed, data.bulletLifetime);
-                    Debug.Log($"[Fire] Predicted bullet initialized with velocity: {spreadDir * data.bulletSpeed}");
-                }
-                else
-                {
-                    Debug.LogError($"[Fire] PredictedBullet component NOT FOUND on visual prefab!");
                 }
             }
 
-            // Spawn authoritative networked bullet (happens on host/state authority)
             if (Object.HasStateAuthority)
             {
-                Debug.Log($"[Fire] Spawning networked bullet (state authority)");
                 Runner.Spawn(data.bulletPrefab, spawnPos, spawnRotation, Object.InputAuthority, (runner, obj) =>
                 {
                     var proj = obj.GetComponent<NetworkedProjectile>();
