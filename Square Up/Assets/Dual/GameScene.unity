@@ -193,12 +193,18 @@ MonoBehaviour:
   spawnHeight: 2
   availableWeapons:
   - {fileID: 11400000, guid: c861993e121738741b73d355824e63a6, type: 2}
-  - {fileID: 11400000, guid: e5197d0ac58de50488fabfb72f312bba, type: 2}
+  - {fileID: 11400000, guid: 07f955f69d6caf347b78d331909fd6d5, type: 2}
   - {fileID: 11400000, guid: 4f86dfbefc0d52744893d14ba0b9d319, type: 2}
+  - {fileID: 11400000, guid: e5197d0ac58de50488fabfb72f312bba, type: 2}
+  - {fileID: 11400000, guid: 5d9f632c2da7eb249b5884b75e79d97a, type: 2}
+  - {fileID: 11400000, guid: 1e41a02448037a34db5dac477a7d8458, type: 2}
   weaponPrefabs:
   - {fileID: 3614270641424586125, guid: 03893e142773f2f4db4b904861ede0dc, type: 3}
   - {fileID: 3614270641424586125, guid: 968904f258f7cc24ea394fb43bfb7c3f, type: 3}
   - {fileID: 3614270641424586125, guid: 9fb97a11d974c7941b702855ca49804b, type: 3}
+  - {fileID: 3614270641424586125, guid: c7742ce9b0c11eb408a1fceba8dd589b, type: 3}
+  - {fileID: 3614270641424586125, guid: 50cb8891a227e394787951cdb30a1d42, type: 3}
+  - {fileID: 3614270641424586125, guid: afcca5fe998d5394db9ed78cbae1b01e, type: 3}
   _GameStarted:
     _value: 0
 --- !u!1 &143267866
@@ -857,7 +863,7 @@ Transform:
   m_GameObject: {fileID: 635522801}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 32, y: -16.37, z: 0}
+  m_LocalPosition: {x: -13.11, y: -0.15, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1082,7 +1088,7 @@ GameObject:
   - component: {fileID: 866037260}
   - component: {fileID: 866037259}
   m_Layer: 0
-  m_Name: Deagle (1)
+  m_Name: Pistol
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1100,7 +1106,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfffd8e8aac5da54cb180856bfe8704d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnItem
-  spawnObject: {fileID: 652147011907038167, guid: 968904f258f7cc24ea394fb43bfb7c3f, type: 3}
+  spawnObject: {fileID: 652147011907038167, guid: afcca5fe998d5394db9ed78cbae1b01e, type: 3}
 --- !u!114 &866037260
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1129,7 +1135,7 @@ Transform:
   m_GameObject: {fileID: 866037258}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -32.1, y: -1.4, z: 0}
+  m_LocalPosition: {x: -4.77, y: 6.04, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1165,7 +1171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfffd8e8aac5da54cb180856bfe8704d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnItem
-  spawnObject: {fileID: 652147011907038167, guid: 968904f258f7cc24ea394fb43bfb7c3f, type: 3}
+  spawnObject: {fileID: 652147011907038167, guid: c7742ce9b0c11eb408a1fceba8dd589b, type: 3}
 --- !u!114 &918912470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1194,7 +1200,7 @@ Transform:
   m_GameObject: {fileID: 918912468}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 32, y: -1.4, z: 0}
+  m_LocalPosition: {x: -3.76, y: -7.14, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1212,7 +1218,7 @@ GameObject:
   - component: {fileID: 949501798}
   - component: {fileID: 949501797}
   m_Layer: 0
-  m_Name: AR (1)
+  m_Name: Uzi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1230,7 +1236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfffd8e8aac5da54cb180856bfe8704d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnItem
-  spawnObject: {fileID: 652147011907038167, guid: 03893e142773f2f4db4b904861ede0dc, type: 3}
+  spawnObject: {fileID: 652147011907038167, guid: 968904f258f7cc24ea394fb43bfb7c3f, type: 3}
 --- !u!114 &949501798
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1259,7 +1265,7 @@ Transform:
   m_GameObject: {fileID: 949501796}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -32.1, y: 15.3, z: 0}
+  m_LocalPosition: {x: 6.07, y: 0.71, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1308,7 +1314,7 @@ GameObject:
   - component: {fileID: 1189530761}
   - component: {fileID: 1189530760}
   m_Layer: 0
-  m_Name: Shotgun (1)
+  m_Name: Marksman
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1326,7 +1332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfffd8e8aac5da54cb180856bfe8704d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnItem
-  spawnObject: {fileID: 652147011907038167, guid: 9fb97a11d974c7941b702855ca49804b, type: 3}
+  spawnObject: {fileID: 652147011907038167, guid: 50cb8891a227e394787951cdb30a1d42, type: 3}
 --- !u!114 &1189530761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1355,7 +1361,7 @@ Transform:
   m_GameObject: {fileID: 1189530759}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -32.1, y: -16.37, z: 0}
+  m_LocalPosition: {x: 6.63, y: -7.38, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1929,7 +1935,7 @@ Transform:
   m_GameObject: {fileID: 1886219256}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 32, y: 15.3, z: 0}
+  m_LocalPosition: {x: 4.67, y: 6.59, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
