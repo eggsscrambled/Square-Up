@@ -23,7 +23,6 @@ public class WeaponPickup : NetworkBehaviour
     [Networked] private NetworkBool IsPickedUp { get; set; }
     [Networked] private PlayerRef Owner { get; set; }
     [Networked] private Vector2 AimDirection { get; set; }
-    [Networked] private PlayerRef NearbyPlayer { get; set; }
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -58,7 +57,6 @@ public class WeaponPickup : NetworkBehaviour
             IsPickedUp = false;
             Owner = PlayerRef.None;
             AimDirection = Vector2.right;
-            NearbyPlayer = PlayerRef.None;
         }
 
         startPosition = transform.position;
@@ -70,7 +68,6 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
-    // ✅ FIXED: Use RpcSources.All since weapon doesn't have InputAuthority
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestPickup(PlayerRef player, RpcInfo info = default)
     {
@@ -108,12 +105,8 @@ public class WeaponPickup : NetworkBehaviour
             return;
         }
 
-        if (NearbyPlayer != player)
-        {
-            Debug.Log($"Player {player} not nearby. Nearby player is {NearbyPlayer}");
-            return;
-        }
-
+        // FIXED: Do a fresh check instead of relying on NearbyPlayer
+        // This ensures we always check current proximity when pickup is requested
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
         Debug.Log($"Found {nearbyColliders.Length} colliders in pickup range");
 
@@ -124,9 +117,11 @@ public class WeaponPickup : NetworkBehaviour
             {
                 Debug.Log($"Attempting pickup for player {player}");
                 AttemptPickup(playerData);
-                break;
+                return;
             }
         }
+
+        Debug.Log($"Player {player} not in range or not found");
     }
 
     public override void FixedUpdateNetwork()
@@ -134,38 +129,10 @@ public class WeaponPickup : NetworkBehaviour
         if (!Object.HasStateAuthority)
             return;
 
-        if (!IsPickedUp)
-        {
-            CheckForNearbyPlayers();
-        }
-        else if (ownerTransform != null)
+        if (IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();
         }
-    }
-
-    private void CheckForNearbyPlayers()
-    {
-        Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
-
-        PlayerRef closestPlayer = PlayerRef.None;
-        float closestDistance = float.MaxValue;
-
-        foreach (var col in nearbyColliders)
-        {
-            PlayerData player = col.GetComponent<PlayerData>();
-            if (player != null && !player.Dead)
-            {
-                float distance = Vector3.Distance(transform.position, player.transform.position);
-                if (distance < closestDistance)
-                {
-                    closestDistance = distance;
-                    closestPlayer = player.Object.InputAuthority;
-                }
-            }
-        }
-
-        NearbyPlayer = closestPlayer;
     }
 
     private void Update()
@@ -315,7 +282,19 @@ public class WeaponPickup : NetworkBehaviour
 
     public bool IsPlayerNearby(PlayerRef player)
     {
-        return NearbyPlayer == player && !IsPickedUp;
+        // FIXED: Check proximity directly instead of relying on cached state
+        if (IsPickedUp) return false;
+
+        Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius, playerLayer);
+        foreach (var col in nearbyColliders)
+        {
+            PlayerData playerData = col.GetComponent<PlayerData>();
+            if (playerData != null && playerData.Object.InputAuthority == player && !playerData.Dead)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public bool GetIsPickedUp()
