@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8698369529394118326}
   - component: {fileID: 2080072014913376290}
   m_Layer: 0
-  m_Name: high life
+  m_Name: Gulag
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3878,7 +3878,7 @@ TilemapRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: f0254e5e09110814981a9a50ab58c95a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3901,7 +3901,7 @@ TilemapRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
-  m_ChunkCullingBounds: {x: 0.0009999871, y: 0.0015000105, z: 0}
+  m_ChunkCullingBounds: {x: 0.003517568, y: 0.004020095, z: 0}
   m_MaxChunkCount: 16
   m_MaxFrameAge: 16
   m_SortOrder: 0
