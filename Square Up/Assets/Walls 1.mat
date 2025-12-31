@@ -51,7 +51,7 @@ Material:
     - _BorderThickness: 0.232
     - _ColorRange: 3.07
     - _ColorVibrancy: 1.4
-    - _Distortion: 0.27
+    - _Distortion: 0.2
     - _EnableExternalAlpha: 0
     - _GlowIntensity: 3.1
     - _GlowRange: 4
@@ -66,12 +66,12 @@ Material:
     - _WaveSpeed: 0.5
     - _ZWrite: 0
     m_Colors:
-    - _BaseDarkness: {r: 0.09433961, g: 0.09433961, b: 0.09433961, a: 1}
+    - _BaseDarkness: {r: 0.066037714, g: 0.066037714, b: 0.066037714, a: 1}
     - _BorderColor: {r: 1, g: 0, b: 0, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _FlowSpeed: {r: 0.05, g: 0.05, b: 0, a: 0}
     - _FluidColor: {r: 0, g: 1.3420686, b: 2.670157, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SheenColor: {r: 0.01886791, g: 0.01886791, b: 0.01886791, a: 1}
+    - _SheenColor: {r: 0.028301895, g: 0.028301895, b: 0.028301895, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

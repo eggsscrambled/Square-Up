@@ -58,7 +58,7 @@ Material:
     - _NoiseScale: 10
     - _RefractionDepth: 0
     - _RefractionStrength: 0.15
-    - _SheenIntensity: 0.3
+    - _SheenIntensity: 0.02
     - _SheenSpeed: 1.2
     - _SheenTightness: 7.9
     - _SheenWidth: 8.6
