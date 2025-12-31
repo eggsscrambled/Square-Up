@@ -2,15 +2,24 @@ using UnityEngine;
 using Fusion;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI;
+using TMPro; // Added for TextMeshPro support
 
 public class GameManager : NetworkBehaviour
 {
     [Header("Game Settings")]
     [SerializeField] private int minPlayers = 2;
-    [SerializeField] private int maxPlayers = 2; // Restricted to 2
-    [SerializeField] private int winsToWinMatch = 4; // First to 4 wins
+    [SerializeField] private int maxPlayers = 2;
+    [SerializeField] private int winsToWinMatch = 7; // First to 7 wins
     [SerializeField] private float roundStartDelay = 3f;
-    [SerializeField] private float roundEndDelay = 3f;
+    [SerializeField] private float roundEndDelay = 4f;
+
+    [Header("UI Track Setup")]
+    [SerializeField] private GameObject roundEndUIPanel;
+    [SerializeField] private TextMeshProUGUI winStatusText; // Modernized to TextMeshPro
+    [SerializeField] private Image[] p1WinSprites; // 6 sprites for P1
+    [SerializeField] private Image[] p2WinSprites; // 6 sprites for P2
+    [SerializeField] private Image winnerCenterSprite; // The middle "7th win" sprite
 
     [Header("Spawn Positions")]
     [SerializeField] private Transform[] spawnPoints;
@@ -22,11 +31,13 @@ public class GameManager : NetworkBehaviour
 
     [Header("Game State")]
     [Networked] public NetworkBool GameStarted { get; set; }
+    [Networked] public NetworkBool ShowRoundEndUI { get; set; }
     [Networked] private int RoundNumber { get; set; }
     [Networked] private TickTimer RoundTimer { get; set; }
     [Networked] private GameState CurrentState { get; set; }
 
-    // Track wins for Player 0 and Player 1
+    [Networked] private int LastRoundWinnerIndex { get; set; }
+
     [Networked, Capacity(2)]
     private NetworkArray<int> PlayerWins => default;
 
@@ -46,10 +57,11 @@ public class GameManager : NetworkBehaviour
         if (Object.HasStateAuthority)
         {
             CurrentState = GameState.WaitingForPlayers;
+            ShowRoundEndUI = false;
+            LastRoundWinnerIndex = -1;
             ResetMatchScores();
         }
 
-        // Auto-find spawn points if missing
         if (spawnPoints == null || spawnPoints.Length == 0)
         {
             GameObject spawnParent = GameObject.Find("SpawnPoints");
@@ -63,9 +75,14 @@ public class GameManager : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!Object.HasStateAuthority) return;
-
         UpdatePlayerList();
+
+        if (Object.HasStateAuthority && allPlayers.Count == 2)
+        {
+            EnsureUniqueColors();
+        }
+
+        if (!Object.HasStateAuthority) return;
 
         switch (CurrentState)
         {
@@ -83,19 +100,77 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    // --- Core Game Flow ---
+    public override void Render()
+    {
+        if (roundEndUIPanel != null)
+        {
+            roundEndUIPanel.SetActive(ShowRoundEndUI);
+        }
+
+        if (ShowRoundEndUI && allPlayers.Count == 2)
+        {
+            UpdateWinTrackUI();
+            UpdateWinStatusText();
+        }
+    }
+
+    private void UpdateWinTrackUI()
+    {
+        Color p1Color = allPlayers[0].GetActualColor();
+        Color p2Color = allPlayers[1].GetActualColor();
+        Color fadedColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+
+        // Update P1 Icons 
+        for (int i = 0; i < p1WinSprites.Length; i++)
+        {
+            p1WinSprites[i].color = (PlayerWins[0] > i) ? p1Color : fadedColor;
+        }
+
+        // Update P2 Icons
+        for (int i = 0; i < p2WinSprites.Length; i++)
+        {
+            p2WinSprites[i].color = (PlayerWins[1] > i) ? p2Color : fadedColor;
+        }
+
+        // Center Sprite logic
+        if (PlayerWins[0] >= winsToWinMatch) winnerCenterSprite.color = p1Color;
+        else if (PlayerWins[1] >= winsToWinMatch) winnerCenterSprite.color = p2Color;
+        else winnerCenterSprite.color = Color.white;
+    }
+
+    private void UpdateWinStatusText()
+    {
+        if (winStatusText == null) return;
+
+        if (LastRoundWinnerIndex == -1)
+        {
+            winStatusText.text = "DRAW!";
+            winStatusText.color = Color.white;
+        }
+        else
+        {
+            winStatusText.text = $"PLAYER {LastRoundWinnerIndex + 1} WINS ROUND!";
+            winStatusText.color = allPlayers[LastRoundWinnerIndex].GetActualColor();
+        }
+
+        if (CurrentState == GameState.MatchOver && LastRoundWinnerIndex != -1)
+        {
+            winStatusText.text = $"PLAYER {LastRoundWinnerIndex + 1} WINS THE MATCH!";
+        }
+    }
+
+    private void EnsureUniqueColors()
+    {
+        if (allPlayers[0].PlayerColorIndex == allPlayers[1].PlayerColorIndex)
+        {
+            allPlayers[1].PlayerColorIndex = (allPlayers[1].PlayerColorIndex + 1) % 10;
+        }
+    }
 
     public void StartGame()
     {
         if (!Object.HasStateAuthority || GameStarted) return;
-
-        UpdatePlayerList();
-
-        if (allPlayers.Count != 2)
-        {
-            Debug.Log($"Need exactly 2 players! Have: {allPlayers.Count}");
-            return;
-        }
+        if (allPlayers.Count != 2) return;
 
         GameStarted = true;
         RoundNumber = 1;
@@ -107,6 +182,8 @@ public class GameManager : NetworkBehaviour
     {
         if (CurrentState == GameState.MatchOver) return;
 
+        ShowRoundEndUI = false;
+        LastRoundWinnerIndex = -1;
         CurrentState = GameState.RoundStarting;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundStartDelay);
 
@@ -121,7 +198,6 @@ public class GameManager : NetworkBehaviour
     private void StartRound()
     {
         CurrentState = GameState.RoundActive;
-        Debug.Log($"Round {RoundNumber} Started!");
     }
 
     private void CheckForRoundEnd()
@@ -136,24 +212,27 @@ public class GameManager : NetworkBehaviour
     private void EndRound()
     {
         CurrentState = GameState.RoundEnding;
+        ShowRoundEndUI = true;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundEndDelay);
 
         PlayerData roundWinner = allPlayers.FirstOrDefault(p => p != null && !p.Dead);
 
         if (roundWinner != null)
         {
-            int winnerIndex = allPlayers.IndexOf(roundWinner);
-            if (winnerIndex != -1)
+            LastRoundWinnerIndex = allPlayers.IndexOf(roundWinner);
+            if (LastRoundWinnerIndex != -1)
             {
-                PlayerWins.Set(winnerIndex, PlayerWins[winnerIndex] + 1);
-                Debug.Log($"Player {winnerIndex} wins round! Total: {PlayerWins[winnerIndex]}");
+                PlayerWins.Set(LastRoundWinnerIndex, PlayerWins[LastRoundWinnerIndex] + 1);
             }
+        }
+        else
+        {
+            LastRoundWinnerIndex = -1;
         }
 
         if (PlayerWins[0] >= winsToWinMatch || PlayerWins[1] >= winsToWinMatch)
         {
             CurrentState = GameState.MatchOver;
-            Debug.Log("Match Finished!");
         }
         else
         {
@@ -185,12 +264,10 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    // --- Weapon Helper Methods (Fixed Errors) ---
-
+    // --- Weapon Helpers (DO NOT REMOVE) ---
     public void SpawnDroppedWeapon(WeaponData weaponData, Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
-
         int weaponIndex = GetWeaponIndex(weaponData);
         if (weaponIndex == -1 || weaponPrefabs == null || weaponIndex >= weaponPrefabs.Length) return;
 
@@ -218,10 +295,4 @@ public class GameManager : NetworkBehaviour
         }
         return -1;
     }
-
-    public int GetWeaponCount() => availableWeapons?.Length ?? 0;
-
-    // --- UI Getters ---
-    public int GetPlayerWins(int index) => (index >= 0 && index < 2) ? PlayerWins[index] : 0;
-    public int GetRoundNumber() => RoundNumber;
 }

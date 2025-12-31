@@ -25,24 +25,18 @@ public class PlayerData : NetworkBehaviour
         Color.blue,
         Color.green,
         Color.yellow,
-        Color.pink,
-        Color.purple,
-        Color.orange,
+        new Color(1f, 0.4f, 0.7f), // Pink
+        new Color(0.5f, 0f, 0.5f), // Purple
+        new Color(1f, 0.5f, 0f),   // Orange
         Color.cyan,
         Color.black,
         Color.white,
-
     };
 
     private void Awake()
     {
         sprite = GetComponent<SpriteRenderer>();
         hitCollision = transform.Find("HitCollision")?.gameObject;
-
-        if (hitCollision == null)
-        {
-            Debug.LogError("HitCollision child object not found!");
-        }
     }
 
     public override void Spawned()
@@ -55,12 +49,8 @@ public class PlayerData : NetworkBehaviour
             PlayerColorIndex = Random.Range(0, availableColors.Length);
         }
 
-        // Try to assign tag and layer immediately
         TryAssignTagAndLayer();
 
-        ApplyColor();
-
-        // Disable HitCollision for local player to prevent self-damage
         if (hitCollision != null)
         {
             hitCollision.SetActive(!Object.HasInputAuthority);
@@ -69,52 +59,25 @@ public class PlayerData : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Try to assign tag and layer if not yet assigned
-        if (!tagAndLayerAssigned)
-        {
-            TryAssignTagAndLayer();
-        }
-
-        ApplyColor();
+        if (!tagAndLayerAssigned) TryAssignTagAndLayer();
     }
 
-    public void LateUpdate()
+    public override void Render()
     {
-        healthUI.fillAmount = (Health / 100);
+        ApplyColor();
+        if (healthUI != null)
+        {
+            healthUI.fillAmount = (Health / 100f);
+        }
     }
 
     private void TryAssignTagAndLayer()
     {
         if (!tagAndLayerAssigned && Object.HasInputAuthority)
         {
-            bool success = true;
-
-            // Assign layer
-            int playerLayer = LayerMask.NameToLayer("Player");
-            if (playerLayer != -1)
-            {
-                gameObject.layer = playerLayer;
-                Debug.Log($"Layer 'Player' assigned to player {Object.InputAuthority}");
-            }
-            else
-            {
-                Debug.LogError("Layer 'Player' does not exist! Please add it in Project Settings → Tags and Layers.");
-                success = false;
-            }
-
-            // Assign tag
-            try
-            {
-                gameObject.tag = "Player";
-                Debug.Log($"Tag 'Player' assigned to player {Object.InputAuthority}");
-            }
-            catch (UnityException e)
-            {
-                Debug.LogError($"Failed to assign tag 'Player': {e.Message}. Make sure 'Player' tag exists in Project Settings → Tags and Layers.");
-                success = false;
-            }
-
-            tagAndLayerAssigned = success;
+            gameObject.layer = LayerMask.NameToLayer("Player");
+            gameObject.tag = "Player";
+            tagAndLayerAssigned = true;
         }
     }
 
@@ -126,18 +89,21 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
+    public Color GetActualColor()
+    {
+        if (PlayerColorIndex >= 0 && PlayerColorIndex < availableColors.Length)
+            return availableColors[PlayerColorIndex];
+        return Color.white;
+    }
+
     public void TakeDamage(int damage)
     {
         if (Object.HasStateAuthority)
         {
             Health -= damage;
-            if (Health < 0)
-            {
-                Health = 0;
-            }
-
             if (Health <= 0 && !Dead)
             {
+                Health = 0;
                 Dead = true;
                 OnDeath();
             }
@@ -146,11 +112,7 @@ public class PlayerData : NetworkBehaviour
 
     private void OnDeath()
     {
-        Debug.Log($"Player {Object.InputAuthority} has died!");
-        if (Object.HasStateAuthority)
-        {
-            WeaponIndex = 0;
-        }
+        WeaponIndex = 0;
     }
 
     public void Respawn()
@@ -165,20 +127,15 @@ public class PlayerData : NetworkBehaviour
 
     public void PickupWeapon(int weaponIndex)
     {
-        if (Object.HasStateAuthority)
-        {
-            WeaponIndex = weaponIndex;
-        }
+        if (Object.HasStateAuthority) WeaponIndex = weaponIndex;
     }
 
     public void DropWeapon()
     {
-        if (Object.HasStateAuthority)
-        {
-            WeaponIndex = 0;
-        }
+        if (Object.HasStateAuthority) WeaponIndex = 0;
     }
 
+    // --- Critical Method: Do Not Remove ---
     public bool HasWeapon()
     {
         return WeaponIndex > 0;
