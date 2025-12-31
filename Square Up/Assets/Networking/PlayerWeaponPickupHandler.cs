@@ -9,6 +9,7 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
     private WeaponPickup[] allWeapons;
 
     [Networked] private TickTimer PickupCooldownTimer { get; set; }
+    [Networked] private NetworkBool PendingPickup { get; set; } // Track if we're waiting for a pickup RPC
 
     private void Awake()
     {
@@ -36,16 +37,20 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
                 // Start cooldown immediately to prevent "double-tap" logic in re-simulations
                 PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
-
                 HandlePickupSwapOrDrop();
             }
+        }
+
+        // Clear pending pickup flag after a short delay
+        if (PendingPickup && PickupCooldownTimer.ExpiredOrNotRunning(Runner))
+        {
+            PendingPickup = false;
         }
     }
 
     private void HandlePickupSwapOrDrop()
     {
         RefreshWeaponList();
-
         WeaponPickup closestWeapon = null;
         float closestDistance = float.MaxValue;
 
@@ -66,10 +71,12 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         // 2. SWAP OR PICKUP LOGIC
         if (closestWeapon != null)
         {
+            // Set flag to prevent drop during prediction
+            PendingPickup = true;
+
             // If we are already holding a weapon, drop it first to "Swap"
             if (playerData != null && playerData.HasWeapon())
             {
-                // We call the same RPC used for dropping
                 RPC_RequestDropCurrentWeapon(Object.InputAuthority);
             }
 
@@ -79,8 +86,8 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         }
 
         // 3. PURE DROP LOGIC
-        // If no weapon was nearby, but we pressed E while holding one, just drop it.
-        if (playerData != null && playerData.HasWeapon())
+        // If no weapon was nearby AND we're not waiting for a pickup, drop the held weapon
+        if (!PendingPickup && playerData != null && playerData.HasWeapon())
         {
             RPC_RequestDropCurrentWeapon(Object.InputAuthority);
         }
@@ -96,7 +103,6 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         if (heldWeapon != null)
         {
             Vector3 dropPosition = transform.position;
-            // Pop the weapon out with some random velocity
             Vector2 dropVelocity = new Vector2(Random.Range(-2f, 2f), Random.Range(2f, 4f));
 
             WeaponAimController aimController = GetComponent<WeaponAimController>();
@@ -109,9 +115,11 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
             if (playerData != null)
             {
-                // Reset player's held weapon index/state
                 playerData.PickupWeapon(0);
             }
         }
+
+        // Clear the pending pickup flag on the server after drop completes
+        PendingPickup = false;
     }
 }
