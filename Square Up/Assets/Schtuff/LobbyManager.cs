@@ -58,9 +58,12 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
                 }
             }
 
+            // Store previous fire state before updating
+            inputData.wasFirePressedLastTick = inputData.fire;
             inputData.fire = Input.GetButton("Fire1");
+
             inputData.pickup = Input.GetKeyDown(KeyCode.E);
-            inputData.dash = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space); // Dash input
+            inputData.dash = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space);
         }
     }
 

@@ -7,6 +7,7 @@ public struct NetworkInputData : INetworkInput
     public Vector2 movementInput;
     public Vector2 aimDirection;
     public NetworkBool fire;
+    public NetworkBool wasFirePressedLastTick; // Add this
     public NetworkBool pickup;
     public NetworkBool dash;
 }

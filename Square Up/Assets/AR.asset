@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 30d8139b11320ae43acbf008f4408406, type: 3}
-  m_Name: Pistol
+  m_Name: AR
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  weaponID: Pistol
+  weaponID: AR
   fireRate: 5
-  bulletSpeed: 100
+  bulletSpeed: 110
   bulletAmount: 1
-  spreadAmount: 0
+  spreadAmount: 1
   maxSpreadDegrees: 0
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   damage: 16
-  knockbackForce: 40
-  isAutomatic: 0
-  recoilForce: 1
+  knockbackForce: 30
+  isAutomatic: 1
+  recoilForce: 15

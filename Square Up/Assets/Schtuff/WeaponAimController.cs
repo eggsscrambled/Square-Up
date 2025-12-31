@@ -19,7 +19,6 @@ public class WeaponAimController : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         // 1. Resolve the weapon reference using the Networked ID
-        // This is much faster than FindObjectOfType and works for all clients
         ResolveWeaponReference();
 
         if (_currentWeapon == null || _playerData == null || _playerData.Dead)
@@ -34,12 +33,17 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(input.aimDirection);
             }
 
-            // 3. Handle Firing (Logic runs on both Client and Server for prediction)
-            if (input.fire)
-            {
-                WeaponData data = _currentWeapon.GetWeaponData();
+            // 3. Handle Firing
+            WeaponData data = _currentWeapon.GetWeaponData();
 
-                if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
+            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
+            {
+                // Check if weapon is automatic OR if this is a new button press
+                bool shouldFire = data.isAutomatic
+                    ? input.fire
+                    : (input.fire && !input.wasFirePressedLastTick);
+
+                if (shouldFire)
                 {
                     // Reset Timer
                     fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
