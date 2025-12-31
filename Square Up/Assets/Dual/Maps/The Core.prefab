@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 769065062470883577}
   - component: {fileID: 8188307718732546637}
   - component: {fileID: 3006763481475832347}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
