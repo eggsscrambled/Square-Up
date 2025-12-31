@@ -13,6 +13,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkRunner runner;
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    private GameObject[] spawnPoints;
 
     // Accumulators ensure we don't miss a fast keypress between ticks
     private bool _pickupAccumulator;
@@ -25,6 +26,9 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         runner.AddCallbacks(this);
         DontDestroyOnLoad(runner.gameObject);
         DontDestroyOnLoad(gameObject);
+
+        // Cache spawn points
+        RefreshSpawnPoints();
     }
 
     void Update()
@@ -35,6 +39,35 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         if (Input.GetButton("Fire1")) _fireAccumulator = true;
         if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
+    }
+
+    private void RefreshSpawnPoints()
+    {
+        spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoints");
+        if (spawnPoints.Length == 0)
+        {
+            Debug.LogWarning("No GameObjects with tag 'SpawnPoints' found!");
+        }
+    }
+
+    private Vector3 GetSpawnPosition(int playerIndex)
+    {
+        // Refresh spawn points in case scene changed
+        if (spawnPoints == null || spawnPoints.Length == 0)
+        {
+            RefreshSpawnPoints();
+        }
+
+        // If we have spawn points, use them
+        if (spawnPoints != null && spawnPoints.Length > 0)
+        {
+            int spawnIndex = playerIndex % spawnPoints.Length;
+            return spawnPoints[spawnIndex].transform.position;
+        }
+
+        // Fallback to random position if no spawn points
+        Debug.LogWarning("Using fallback spawn position - no spawn points available!");
+        return new Vector3(UnityEngine.Random.Range(-5f, 5f), 2f, 0f);
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
@@ -76,7 +109,10 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner.IsServer)
         {
-            Vector3 spawnPos = new Vector3(UnityEngine.Random.Range(-5f, 5f), 2f, 0f);
+            // Get spawn position based on player count
+            int playerIndex = spawnedPlayers.Count;
+            Vector3 spawnPos = GetSpawnPosition(playerIndex);
+
             NetworkObject networkPlayer = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
             runner.SetPlayerObject(player, networkPlayer);
             spawnedPlayers.Add(player, networkPlayer);
@@ -114,7 +150,11 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
-    public void OnSceneLoadDone(NetworkRunner runner) { }
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+        // Refresh spawn points when scene loads
+        RefreshSpawnPoints();
+    }
     public void OnSceneLoadStart(NetworkRunner runner) { }
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
