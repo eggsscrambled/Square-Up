@@ -17,6 +17,7 @@ public class PlayerData : NetworkBehaviour
 
     private SpriteRenderer sprite;
     private bool tagAndLayerAssigned = false;
+    private GameObject hitCollision;
 
     private static readonly Color[] availableColors = new Color[]
     {
@@ -36,6 +37,12 @@ public class PlayerData : NetworkBehaviour
     private void Awake()
     {
         sprite = GetComponent<SpriteRenderer>();
+        hitCollision = transform.Find("HitCollision")?.gameObject;
+
+        if (hitCollision == null)
+        {
+            Debug.LogError("HitCollision child object not found!");
+        }
     }
 
     public override void Spawned()
@@ -52,6 +59,12 @@ public class PlayerData : NetworkBehaviour
         TryAssignTagAndLayer();
 
         ApplyColor();
+
+        // Disable HitCollision for local player to prevent self-damage
+        if (hitCollision != null)
+        {
+            hitCollision.SetActive(!Object.HasInputAuthority);
+        }
     }
 
     public override void FixedUpdateNetwork()
