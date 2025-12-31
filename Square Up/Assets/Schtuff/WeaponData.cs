@@ -14,4 +14,5 @@ public class WeaponData : ScriptableObject
     public float knockbackForce = 5f;
     public bool isAutomatic = false;
     public float recoilForce = 2f;
+    public float bulletLifetime = 5f; // How long the bullet lives in seconds
 }

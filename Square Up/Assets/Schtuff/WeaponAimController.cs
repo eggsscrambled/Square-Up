@@ -59,30 +59,23 @@ public class WeaponAimController : NetworkBehaviour
     {
         if (aimDirection.magnitude < 0.1f) return;
 
-        // FIX 1: Ensure we are finding the FireOrigin on the weapon instance the Server sees
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
-
-        // Fallback to weapon position if FireOrigin is missing
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // Only the State Authority (Server/Host) should perform the actual Spawn
         if (Object.HasStateAuthority)
         {
             for (int i = 0; i < weaponData.bulletAmount; i++)
             {
                 Vector2 direction = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-
-                // FIX 2: Explicitly pass the rotation so it doesn't default to Zero
                 Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
 
                 NetworkObject projectile = Runner.Spawn(
                     weaponData.bulletPrefab,
                     spawnPos,
                     spawnRotation,
-                    Object.InputAuthority // This ensures the client still "owns" the credit for the shot
+                    Object.InputAuthority
                 );
 
-                // FIX 3: Ensure the Projectile component is initialized on the Server
                 if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
                 {
                     proj.Initialize(weaponData, direction, Object.InputAuthority);

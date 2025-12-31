@@ -116,5 +116,11 @@ public class NetworkedProjectile : NetworkBehaviour
         Damage = weaponData.damage;
         KnockbackForce = weaponData.knockbackForce;
         Owner = owner;
+
+        // Use the weapon-specific lifetime instead of the default
+        if (Object.HasStateAuthority)
+        {
+            LifeTime = TickTimer.CreateFromSeconds(Runner, weaponData.bulletLifetime);
+        }
     }
 }
