@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Uzi
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: Uzi
-  fireRate: 200
+  fireRate: 25
   bulletSpeed: 70
   bulletAmount: 1
   spreadAmount: 10
@@ -23,5 +23,5 @@ MonoBehaviour:
   damage: 9
   knockbackForce: 5
   isAutomatic: 1
-  recoilForce: 1.5
+  recoilForce: 50
   bulletLifetime: 0.25
