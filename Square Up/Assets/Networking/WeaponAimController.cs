@@ -7,13 +7,14 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] private TickTimer fireRateTimer { get; set; }
     [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
     [Networked] private int nextBulletId { get; set; }
-    [Networked, OnChangedRender(nameof(OnMuzzleFlashChanged))] private NetworkBool triggerMuzzleFlash { get; set; }
+    [Networked] private int muzzleFlashCounter { get; set; }
 
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
 
     private TickTimer _clientFireRateTimer;
     private int _clientNextBulletId = 0;
+    private int _lastMuzzleFlashCounter = -1;
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
@@ -25,6 +26,7 @@ public class WeaponAimController : NetworkBehaviour
     {
         _playerData = GetComponent<PlayerData>();
         _playerController = GetComponent<PlayerController>();
+        _lastMuzzleFlashCounter = muzzleFlashCounter;
     }
 
     public override void FixedUpdateNetwork()
@@ -52,20 +54,22 @@ public class WeaponAimController : NetworkBehaviour
             bool firePressed = input.buttons.IsSet(MyButtons.Fire);
             WeaponData data = _currentWeapon.GetWeaponData();
 
-            bool canFire = Object.HasStateAuthority
-                ? fireRateTimer.ExpiredOrNotRunning(Runner)
-                : _clientFireRateTimer.ExpiredOrNotRunning(Runner);
-
-            if (data != null && canFire)
+            if (data != null)
             {
                 bool shouldFire = false;
 
                 if (data.isAutomatic)
                 {
-                    shouldFire = firePressed;
+                    // For automatic weapons, check fire rate timer
+                    bool canFire = Object.HasStateAuthority
+                        ? fireRateTimer.ExpiredOrNotRunning(Runner)
+                        : _clientFireRateTimer.ExpiredOrNotRunning(Runner);
+
+                    shouldFire = firePressed && canFire;
                 }
                 else
                 {
+                    // For semi-automatic, only fire on button press (not hold)
                     shouldFire = firePressed && !wasFirePressedLastFrame;
                 }
 
@@ -84,14 +88,17 @@ public class WeaponAimController : NetworkBehaviour
                         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
                         if (_playerController != null) _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
 
-                        // Trigger muzzle flash for all clients
-                        triggerMuzzleFlash = !triggerMuzzleFlash;
+                        // Increment counter to trigger muzzle flash on all clients
+                        muzzleFlashCounter++;
                     }
                     else
                     {
                         bulletId = _clientNextBulletId;
                         _clientNextBulletId += data.bulletAmount;
                         _clientFireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+
+                        // Client prediction of muzzle flash
+                        TriggerMuzzleFlash();
                     }
 
                     Fire(baseAimDir, data, spawnPos, input.inputTick, bulletId);
@@ -107,13 +114,12 @@ public class WeaponAimController : NetworkBehaviour
 
     public override void Render()
     {
-        // Render is called every frame, no change detection needed here anymore
-    }
-
-    private void OnMuzzleFlashChanged()
-    {
-        // This is called on all clients when triggerMuzzleFlash changes
-        TriggerMuzzleFlash();
+        // Check if muzzleFlashCounter changed for non-input authority clients
+        if (!Object.HasInputAuthority && muzzleFlashCounter != _lastMuzzleFlashCounter)
+        {
+            _lastMuzzleFlashCounter = muzzleFlashCounter;
+            TriggerMuzzleFlash();
+        }
     }
 
     private void TriggerMuzzleFlash()
