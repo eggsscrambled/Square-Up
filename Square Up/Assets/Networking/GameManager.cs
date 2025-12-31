@@ -244,14 +244,43 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+
     private async void ReturnToMenu()
     {
         if (!Object.HasStateAuthority) return;
 
-        // Shutdown the runner which will kick all players and return to menu
+        // Tell all clients to return to menu
+        RPC_ReturnToMenu();
+
+        // Small delay to ensure RPC is sent
+        await System.Threading.Tasks.Task.Delay(100);
+
+        // Shutdown the runner
         await Runner.Shutdown();
 
         // Load scene index 0 (menu scene)
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ReturnToMenu()
+    {
+        // This runs on all clients including host
+        StartCoroutine(ReturnToMenuCoroutine());
+    }
+
+    private System.Collections.IEnumerator ReturnToMenuCoroutine()
+    {
+        // Small delay to let RPC finish
+        yield return new WaitForSeconds(0.1f);
+
+        // Shutdown runner (safe to call on both host and client)
+        if (Runner != null)
+        {
+            Runner.Shutdown();
+        }
+
+        // Load menu scene
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
