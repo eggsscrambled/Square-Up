@@ -72,7 +72,7 @@ public class WeaponPickup : NetworkBehaviour
 
         IsPickedUp = true;
         Owner = player;
-        OwnerId = pObj.Id; // Store the NetworkObject ID
+        OwnerId = pObj.Id;
         ownerTransform = pd.transform;
 
         pd.PickupWeapon(gameManager.GetWeaponIndex(weaponData) + 1);
@@ -83,7 +83,7 @@ public class WeaponPickup : NetworkBehaviour
         transform.SetParent(null);
         if (rb != null) rb.simulated = false;
         if (col != null) col.enabled = false;
-        if (networkTransform != null) networkTransform.enabled = false; // Disable NetworkTransform when held
+        if (networkTransform != null) networkTransform.enabled = false;
 
         RPC_SyncState(true);
     }
@@ -106,7 +106,15 @@ public class WeaponPickup : NetworkBehaviour
             rb.linearVelocity = velocity;
         }
         if (col != null) col.enabled = true;
-        if (networkTransform != null) networkTransform.enabled = true; // Re-enable NetworkTransform when dropped
+
+        // Re-enable NetworkTransform and immediately teleport to sync the new position
+        if (networkTransform != null)
+        {
+            networkTransform.enabled = true;
+            // Force NetworkTransform to teleport to the current position
+            // This prevents it from interpolating from the old held position
+            networkTransform.Teleport(pos, transform.rotation);
+        }
 
         RPC_SyncState(false);
     }
@@ -125,7 +133,6 @@ public class WeaponPickup : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         // Update weapon position on server when held
-        // This keeps the networked position in sync even though NetworkTransform is disabled
         if (Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();
@@ -138,7 +145,6 @@ public class WeaponPickup : NetworkBehaviour
         ResolveOwnerReference();
 
         // Update visuals locally on NON-AUTHORITY clients for smooth rendering
-        // Authority already updated in FixedUpdateNetwork
         if (!Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();

@@ -233,17 +233,11 @@ MonoBehaviour:
   moveSpeed: 12
   acceleration: 200
   friction: 100
-  rotateTowardsMovement: 0
-  rotateTowardsAim: 0
-  rotationSpeed: 10
   enableDash: 1
-  dashSpeed: 100
-  dashDuration: 0.1
-  dashCooldown: 5
-  recoilDecaySpeed: 45
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 0
+  dashSpeed: 50
+  dashDuration: 0.05
+  dashCooldown: 2.5
+  recoilDecaySpeed: 15
   collisionRadius: 0.5
 --- !u!50 &7973437044663750698
 Rigidbody2D:
@@ -326,7 +320,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponPickupHandler
   pickupCheckRadius: 4
-  pickupCooldown: 0.3
+  throwForce: 20
 --- !u!114 &-3703887877102232386
 MonoBehaviour:
   m_ObjectHideFlags: 0
