@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -16,58 +15,63 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private NetworkInputData inputData;
 
+    // Accumulators to prevent missed inputs at 64 TPS
+    private bool _pickupAccumulator;
+    private bool _dashAccumulator;
+
     async void Start()
     {
         runner = Instantiate(runnerPrefab);
         runner.AddCallbacks(this);
-
         DontDestroyOnLoad(runner.gameObject);
         DontDestroyOnLoad(gameObject);
     }
 
     void Update()
     {
-        if (runner != null && runner.IsRunning)
+        if (runner == null || !runner.IsRunning) return;
+
+        // 1. Continuous Inputs
+        inputData.movementInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+
+        if (Camera.main != null)
         {
-            inputData.movementInput = new Vector2(
-                Input.GetAxisRaw("Horizontal"),
-                Input.GetAxisRaw("Vertical")
-            );
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = 0;
+            inputData.mouseWorldPosition = mousePos;
 
-            // Mouse aim - calculate direction from player to mouse
-            if (Camera.main != null)
+            PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
+                .FirstOrDefault(p => p.Object != null && p.Object.HasInputAuthority);
+
+            if (localPlayer != null)
             {
-                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                mousePos.z = 0;
-
-                // Store mouse world position in input data
-                inputData.mouseWorldPosition = new Vector2(mousePos.x, mousePos.y);
-
-                // Get local player position using input authority
-                PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
-                    .FirstOrDefault(p => p.Object != null && p.Object.HasInputAuthority);
-
-                if (localPlayer != null)
-                {
-                    Vector2 direction = (mousePos - localPlayer.transform.position);
-                    inputData.aimDirection = direction.normalized;
-                }
-                else
-                {
-                    // Fallback if no player found yet
-                    inputData.aimDirection = Vector2.right;
-                }
+                inputData.aimDirection = ((Vector2)mousePos - (Vector2)localPlayer.transform.position).normalized;
             }
-
-            // Store previous fire state before updating
-            inputData.wasFirePressedLastTick = inputData.fire;
-            inputData.fire = Input.GetButton("Fire1");
-
-            inputData.pickup = Input.GetKeyDown(KeyCode.E);
-            inputData.dash = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space);
         }
+
+        inputData.wasFirePressedLastTick = inputData.fire;
+        inputData.fire = Input.GetButton("Fire1");
+
+        // 2. Accumulated Inputs (The Fix)
+        // We use |= so that if the key is pressed in ANY frame between ticks, it stays TRUE
+        if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
     }
 
+    public void OnInput(NetworkRunner runner, NetworkInput input)
+    {
+        // 3. Assign accumulated pulses to the network struct
+        inputData.pickup = _pickupAccumulator;
+        inputData.dash = _dashAccumulator;
+
+        input.Set(inputData);
+
+        // 4. RESET accumulators so they don't fire again next tick
+        _pickupAccumulator = false;
+        _dashAccumulator = false;
+    }
+
+    // --- Lobby & Session Management ---
     public async void StartHost()
     {
         var result = await runner.StartGame(new StartGameArgs()
@@ -76,59 +80,31 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             SessionName = "TestRoom",
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
-
-        if (result.Ok)
-        {
-            Debug.Log("Host started successfully");
-            runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
-        }
-        else
-        {
-            Debug.LogError($"Failed to start: {result.ShutdownReason}");
-        }
+        if (result.Ok) runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
     }
 
     public async void StartClient()
     {
-        var result = await runner.StartGame(new StartGameArgs()
+        await runner.StartGame(new StartGameArgs()
         {
             GameMode = GameMode.Client,
             SessionName = "TestRoom",
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
-
-        if (result.Ok)
-        {
-            Debug.Log("Client connected successfully");
-        }
-        else
-        {
-            Debug.LogError($"Failed to connect: {result.ShutdownReason}");
-        }
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        Debug.Log($"Player {player} joined");
-
         if (runner.IsServer)
         {
             Vector3 spawnPos = new Vector3(UnityEngine.Random.Range(-5f, 5f), 2f, 0f);
-            NetworkObject networkPlayer = runner.Spawn(
-                playerPrefab,
-                spawnPos,
-                Quaternion.identity,
-                player
-            );
-
+            NetworkObject networkPlayer = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
             spawnedPlayers.Add(player, networkPlayer);
         }
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        Debug.Log($"Player {player} left");
-
         if (spawnedPlayers.TryGetValue(player, out NetworkObject playerObj))
         {
             runner.Despawn(playerObj);
@@ -136,19 +112,12 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
-    {
-        Debug.Log($"Shutdown: {shutdownReason}");
-    }
-
+    // Unused callbacks
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
-    public void OnInput(NetworkRunner runner, NetworkInput input)
-    {
-        input.Set(inputData);
-    }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }

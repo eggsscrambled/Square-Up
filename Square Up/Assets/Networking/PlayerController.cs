@@ -1,5 +1,4 @@
 using Fusion;
-using Fusion.Sockets;
 using UnityEngine;
 
 public struct NetworkInputData : INetworkInput
@@ -9,16 +8,17 @@ public struct NetworkInputData : INetworkInput
     public Vector2 mouseWorldPosition;
     public NetworkBool fire;
     public NetworkBool wasFirePressedLastTick;
-    public NetworkBool pickup;
-    public NetworkBool dash;
+    public NetworkBool pickup; // This will now act as a reliable pulse
+    public NetworkBool dash;   // This will now act as a reliable pulse
 }
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : NetworkBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
-    [SerializeField] private float acceleration = 50f;
-    [SerializeField] private float friction = 30f;
+    [SerializeField] private float acceleration = 60f; // Snappier for 64 TPS
+    [SerializeField] private float friction = 40f;
 
     [Header("Rotation")]
     [SerializeField] private bool rotateTowardsMovement = false;
@@ -38,8 +38,8 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private float collisionRadius = 0.5f;
 
-    private NetworkTransform networkTransform;
-    private PlayerData playerData;
+    private Rigidbody2D _rb;
+    private PlayerData _playerData;
 
     // Networked state
     [Networked] private Vector2 Velocity { get; set; }
@@ -51,93 +51,71 @@ public class PlayerController : NetworkBehaviour
 
     private void Awake()
     {
-        networkTransform = GetComponent<NetworkTransform>();
-        playerData = GetComponent<PlayerData>();
+        _rb = GetComponent<Rigidbody2D>();
+        _playerData = GetComponent<PlayerData>();
     }
 
     public override void FixedUpdateNetwork()
     {
-        // Only simulate on state authority (server/host)
-        if (!Object.HasStateAuthority)
-            return;
-
         // Don't allow movement if dead
-        if (playerData != null && playerData.Dead)
+        if (_playerData != null && _playerData.Dead)
+        {
+            _rb.linearVelocity = Vector2.zero;
             return;
+        }
+
+        // IMPORTANT: We do NOT return if !HasStateAuthority here. 
+        // Prediction requires this block to run on the Input Authority too.
 
         if (GetInput(out NetworkInputData input))
         {
-            Vector2 newVelocity = Velocity;
+            Vector2 currentVelocity = Velocity;
 
-            // Check if dashing
+            // 1. Dash Logic
             bool isDashing = !DashTimer.ExpiredOrNotRunning(Runner);
             IsDashing = isDashing;
 
             if (isDashing)
             {
-                // During dash, move in dash direction at dash speed
-                newVelocity = DashDirection * dashSpeed;
+                currentVelocity = DashDirection * dashSpeed;
             }
             else
             {
-                // Start dash
+                // Start dash pulse (from LobbyManager accumulator)
                 if (enableDash && input.dash && DashCooldownTimer.ExpiredOrNotRunning(Runner) && input.movementInput.magnitude > 0.1f)
                 {
                     DashDirection = input.movementInput.normalized;
                     DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
                     DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
-                    newVelocity = DashDirection * dashSpeed;
+                    currentVelocity = DashDirection * dashSpeed;
                 }
                 else
                 {
-                    // Normal movement
+                    // 2. Normal Movement (Acceleration and Friction)
                     Vector2 targetVelocity = input.movementInput * moveSpeed;
 
                     if (input.movementInput.magnitude > 0.01f)
-                    {
-                        // Accelerate towards target velocity
-                        newVelocity = Vector2.MoveTowards(newVelocity, targetVelocity, acceleration * Runner.DeltaTime);
-                    }
+                        currentVelocity = Vector2.MoveTowards(currentVelocity, targetVelocity, acceleration * Runner.DeltaTime);
                     else
-                    {
-                        // Apply friction when no input
-                        newVelocity = Vector2.MoveTowards(newVelocity, Vector2.zero, friction * Runner.DeltaTime);
-                    }
+                        currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, friction * Runner.DeltaTime);
 
-                    // Clamp to max speed
-                    if (newVelocity.magnitude > moveSpeed)
-                    {
-                        newVelocity = newVelocity.normalized * moveSpeed;
-                    }
+                    if (currentVelocity.magnitude > moveSpeed)
+                        currentVelocity = currentVelocity.normalized * moveSpeed;
                 }
             }
 
-            // Apply recoil to velocity
-            newVelocity += RecoilVelocity;
-
-            // Decay recoil over time
+            // 3. Recoil Decay
             RecoilVelocity = Vector2.Lerp(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
 
-            Velocity = newVelocity;
+            // Save state for the network
+            Velocity = currentVelocity;
 
-            // Move the transform
-            Vector3 movement = new Vector3(Velocity.x, Velocity.y, 0) * Runner.DeltaTime;
-            Vector3 newPosition = transform.position + movement;
+            // 4. Physics Engine Interaction
+            // We set the Rigidbody velocity. NetworkRigidbody2D will handle 
+            // the transform positioning and client-side prediction.
+            _rb.linearVelocity = Velocity + RecoilVelocity;
 
-            // Simple collision check (optional)
-            Collider2D hit = Physics2D.OverlapCircle(newPosition, collisionRadius, obstacleLayer);
-            if (hit == null)
-            {
-                transform.position = newPosition;
-            }
-            else
-            {
-                // Stop velocity if we hit something
-                Velocity = Vector2.zero;
-                RecoilVelocity = Vector2.zero;
-            }
-
-            // Handle rotation
+            // 5. Handle Rotation (Interpolated transform)
             HandleRotation(input);
         }
     }
@@ -148,71 +126,49 @@ public class PlayerController : NetworkBehaviour
 
         if (rotateTowardsAim && input.aimDirection.magnitude > 0.1f)
         {
-            // Rotate towards aim direction
             float targetAngle = Mathf.Atan2(input.aimDirection.y, input.aimDirection.x) * Mathf.Rad2Deg - 90f;
             targetRotation = Quaternion.Euler(0, 0, targetAngle);
         }
         else if (rotateTowardsMovement && input.movementInput.magnitude > 0.1f)
         {
-            // Rotate towards movement direction
             float targetAngle = Mathf.Atan2(input.movementInput.y, input.movementInput.x) * Mathf.Rad2Deg - 90f;
             targetRotation = Quaternion.Euler(0, 0, targetAngle);
         }
 
-        // Smoothly interpolate to target rotation
         transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Runner.DeltaTime);
     }
 
-    /// <summary>
-    /// Apply recoil force to the player. Should only be called by state authority.
-    /// </summary>
     public void ApplyRecoil(Vector2 recoilForce)
     {
-        if (Object.HasStateAuthority)
+        // Allow Input Authority to predict recoil for instant feel
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
         {
             RecoilVelocity += recoilForce;
         }
     }
 
-    /// <summary>
-    /// Returns the dash cooldown progress as a normalized value (0-1).
-    /// 0 = cooldown is ready (dash available)
-    /// 1 = cooldown just started (dash not available)
-    /// </summary>
     public float GetDashCooldownProgress()
     {
-        if (Runner == null || DashCooldownTimer.ExpiredOrNotRunning(Runner))
-            return 0f;
-
+        if (Runner == null || DashCooldownTimer.ExpiredOrNotRunning(Runner)) return 0f;
         float remainingTime = DashCooldownTimer.RemainingTime(Runner) ?? 0f;
         return Mathf.Clamp01(remainingTime / dashCooldown);
     }
 
     private void OnDrawGizmosSelected()
     {
-        // Draw collision radius
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, collisionRadius);
 
-        // Draw velocity vector
         if (Application.isPlaying)
         {
             Gizmos.color = IsDashing ? Color.yellow : Color.green;
-            Gizmos.DrawLine(transform.position, transform.position + new Vector3(Velocity.x, Velocity.y, 0));
-        }
+            Gizmos.DrawLine(transform.position, transform.position + (Vector3)Velocity);
 
-        // Draw recoil velocity vector
-        if (Application.isPlaying && RecoilVelocity.magnitude > 0.01f)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(transform.position, transform.position + new Vector3(RecoilVelocity.x, RecoilVelocity.y, 0));
-        }
-
-        // Draw dash direction when dashing
-        if (Application.isPlaying && IsDashing)
-        {
-            Gizmos.color = Color.magenta;
-            Gizmos.DrawLine(transform.position, transform.position + new Vector3(DashDirection.x, DashDirection.y, 0) * 2f);
+            if (RecoilVelocity.magnitude > 0.01f)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawLine(transform.position, transform.position + (Vector3)RecoilVelocity);
+            }
         }
     }
 }

@@ -73,8 +73,11 @@ public class WeaponAimController : NetworkBehaviour
         Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
 
-        // Instant visual instantiation on the client's side
-        Instantiate(muzzleFlashPrefab, spawnPos, _currentWeapon.transform.rotation);
+        // Instantiate locally to hide network latency
+        GameObject flash = Instantiate(muzzleFlashPrefab, spawnPos, _currentWeapon.transform.rotation);
+
+        // Manual garbage collection: destroy the local object after 1 second
+        Destroy(flash, 1.0f);
     }
 
     private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos)
