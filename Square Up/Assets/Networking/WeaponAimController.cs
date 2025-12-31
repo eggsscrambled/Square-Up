@@ -114,8 +114,11 @@ public class WeaponAimController : NetworkBehaviour
 
     public override void Render()
     {
-        // Check if muzzleFlashCounter changed for non-input authority clients
-        if (!Object.HasInputAuthority && muzzleFlashCounter != _lastMuzzleFlashCounter)
+        // Check if muzzleFlashCounter changed
+        // Skip if we already predicted it (client with input authority)
+        bool shouldCheckCounter = !(Object.HasInputAuthority && !Object.HasStateAuthority);
+
+        if (shouldCheckCounter && muzzleFlashCounter != _lastMuzzleFlashCounter)
         {
             _lastMuzzleFlashCounter = muzzleFlashCounter;
             TriggerMuzzleFlash();
