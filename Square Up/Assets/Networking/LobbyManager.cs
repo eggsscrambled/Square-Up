@@ -61,6 +61,9 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         inputData.buttons.Set(MyButtons.Pickup, _pickupAccumulator);
         inputData.buttons.Set(MyButtons.Dash, _dashAccumulator);
 
+        // Store the current tick for deterministic randomness
+        inputData.inputTick = runner.Tick;
+
         input.Set(inputData);
 
         // Reset accumulators after passing them to the simulation
