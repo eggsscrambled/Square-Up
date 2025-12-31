@@ -15,15 +15,15 @@ public class Portal : MonoBehaviour
 
     private void OnColliderEntered(Collider2D collider)
     {
-
-
         Transform portalOBJ = collider.gameObject.GetComponent<Transform>();
 
-        portalOBJ.position = new Vector2(teleportPos.position.x,portalOBJ.position.y);
+        // Calculate the offset from this portal's position
+        Vector2 offset = portalOBJ.position - transform.position;
+
+        // Apply the same offset to the teleport position
+        portalOBJ.position = (Vector2)teleportPos.position + offset;
 
         Particles.Play();
-
         source.PlayOneShot(portalSFX);
     }
-
 }
