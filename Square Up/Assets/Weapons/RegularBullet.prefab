@@ -163,8 +163,8 @@ GameObject:
   - component: {fileID: 6118803010109590271}
   - component: {fileID: 5843256605444518926}
   - component: {fileID: 8953864937699496573}
-  - component: {fileID: 1833115113625673296}
   - component: {fileID: 9017563858928968914}
+  - component: {fileID: 8240839298394461611}
   m_Layer: 0
   m_Name: RegularBullet
   m_TagString: Untagged
@@ -264,7 +264,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 8953864937699496573}
-  - {fileID: 1833115113625673296}
+  - {fileID: 8240839298394461611}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8953864937699496573
 MonoBehaviour:
@@ -285,23 +285,6 @@ MonoBehaviour:
     m_Bits: 577
   damage: 10
   knockbackForce: 5
---- !u!114 &1833115113625673296
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7754371058564287661}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
-  _stateAuthorityChangeErrorCorrectionDelta: 0
-  SyncScale: 0
-  SyncParent: 0
-  _autoAOIOverride: 1
-  DisableSharedModeInterpolation: 0
 --- !u!114 &9017563858928968914
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -322,3 +305,20 @@ MonoBehaviour:
   Offset: {x: 0, y: 0, z: 0}
   Root: {fileID: 0}
   GizmosColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!114 &8240839298394461611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7754371058564287661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0

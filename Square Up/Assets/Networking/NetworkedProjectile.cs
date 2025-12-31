@@ -7,38 +7,41 @@ public class NetworkedProjectile : NetworkBehaviour
     [Networked] public PlayerRef Owner { get; set; }
     [Networked] public TickTimer LifeTime { get; set; }
 
-    [Header("Settings")]
-    [SerializeField] private float maxLifeTime = 5f;
-    [SerializeField] private LayerMask hitLayers;
-    [SerializeField] private float damage = 10f;
-    [SerializeField] private float knockbackForce = 5f;
+    // Missing properties added here
+    [Networked] public int Damage { get; set; }
+    [Networked] public float KnockbackForce { get; set; }
+    [Networked] public NetworkBool UseGravity { get; set; }
+    [Networked] public float GravityScale { get; set; }
 
-    public override void Spawned()
-    {
-        // On the Host, we initialize the timer. 
-        // Prediction will handle the visual life on the client.
-        if (Object.HasStateAuthority)
-        {
-            LifeTime = TickTimer.CreateFromSeconds(Runner, maxLifeTime);
-        }
-    }
+    [Header("Fallbacks/Defaults")]
+    [SerializeField] private LayerMask hitLayers;
+    [SerializeField] private bool defaultUseGravity = false;
+    [SerializeField] private float defaultGravityScale = 1f;
+
+    // Getter methods for the WeaponAimController to check prefab defaults
+    public bool GetUseGravity() => defaultUseGravity;
+    public float GetGravityScale() => defaultGravityScale;
+    public LayerMask GetHitLayers() => hitLayers;
 
     public override void FixedUpdateNetwork()
     {
-        // 1. Check Lifetime
         if (LifeTime.Expired(Runner))
         {
             Runner.Despawn(Object);
             return;
         }
 
-        // 2. Calculate Movement for this tick
+        // Apply Gravity if enabled
+        if (UseGravity)
+        {
+            Vector2 gravity = new Vector2(0, Physics2D.gravity.y * GravityScale * Runner.DeltaTime);
+            Velocity += gravity;
+        }
+
         Vector2 movement = Velocity * Runner.DeltaTime;
         float distance = movement.magnitude;
 
-        // 3. LAG COMPENSATED HIT DETECTION
-        // This is the "Secret Sauce." It rewinds the server to the exact time 
-        // the client saw the enemy to check if the hit was valid.
+        // Lag Compensated Raycast (Rewinds time to match client view)
         if (Runner.LagCompensation.Raycast(
             transform.position,
             Velocity.normalized,
@@ -52,10 +55,8 @@ public class NetworkedProjectile : NetworkBehaviour
             return;
         }
 
-        // 4. Move the Projectile
         transform.position += (Vector3)movement;
 
-        // Rotate to face travel
         if (Velocity != Vector2.zero)
         {
             float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
@@ -65,23 +66,22 @@ public class NetworkedProjectile : NetworkBehaviour
 
     private void HandleHit(LagCompensatedHit hit)
     {
-        // Only the Server applies damage and despawns
         if (Object.HasStateAuthority)
         {
             if (hit.GameObject.TryGetComponent<PlayerData>(out var data))
             {
-                data.TakeDamage((int)damage);
+                data.TakeDamage(Damage);
 
                 if (hit.GameObject.TryGetComponent<Rigidbody2D>(out var rb))
                 {
-                    rb.AddForce(Velocity.normalized * knockbackForce, ForceMode2D.Impulse);
+                    rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
                 }
             }
             Runner.Despawn(Object);
         }
         else
         {
-            // Clients can disable their local predicted visual immediately on hit
+            // Predicted visual feedback
             gameObject.SetActive(false);
         }
     }
