@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerWeaponPickupHandler : NetworkBehaviour
 {
     [SerializeField] private float pickupCheckRadius = 2f;
-    [SerializeField] private float pickupCooldown = 0.3f;
+    [SerializeField] private float pickupCooldown = 0.5f;
     private PlayerData playerData;
     private WeaponPickup[] allWeapons;
 
@@ -27,33 +27,29 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Must run for both Input Authority (Prediction) and State Authority (Server)
         if (GetInput(out NetworkInputData input))
         {
-            // 1. Only act if the 'pickup' bit is set and the cooldown has expired
+            // Only proceed if E was pressed and cooldown is over
             if (input.pickup && PickupCooldownTimer.ExpiredOrNotRunning(Runner))
             {
                 if (playerData != null && playerData.Dead) return;
 
-                // 2. Attempt the pickup/drop logic
-                // We return a bool so we know if we actually picked something up
-                bool didPickup = TryPickupNearbyWeapon();
-
-                // 3. Start the cooldown immediately 
-                // This prevents the "Instant Drop" because the 'E' input 
-                // won't be processed again until the timer clears.
+                // Start cooldown immediately to prevent "double-tap" logic in re-simulations
                 PickupCooldownTimer = TickTimer.CreateFromSeconds(Runner, pickupCooldown);
+
+                HandlePickupSwapOrDrop();
             }
         }
     }
 
-    private bool TryPickupNearbyWeapon()
+    private void HandlePickupSwapOrDrop()
     {
         RefreshWeaponList();
 
         WeaponPickup closestWeapon = null;
         float closestDistance = float.MaxValue;
 
+        // 1. Find the closest ground weapon
         foreach (var weapon in allWeapons)
         {
             if (weapon == null || weapon.GetIsPickedUp())
@@ -67,33 +63,40 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
             }
         }
 
+        // 2. SWAP OR PICKUP LOGIC
         if (closestWeapon != null)
         {
-            // PICKUP LOGIC
+            // If we are already holding a weapon, drop it first to "Swap"
+            if (playerData != null && playerData.HasWeapon())
+            {
+                // We call the same RPC used for dropping
+                RPC_RequestDropCurrentWeapon(Object.InputAuthority);
+            }
+
+            // Pickup the new weapon
             closestWeapon.TryPickup(Object.InputAuthority);
-            return true; // We performed a pickup
-        }
-        else if (playerData != null && playerData.HasWeapon())
-        {
-            // DROP LOGIC
-            // This only runs if NO weapon was found in range
-            RPC_RequestDropCurrentWeapon(Object.InputAuthority);
-            return false;
+            return;
         }
 
-        return false;
+        // 3. PURE DROP LOGIC
+        // If no weapon was nearby, but we pressed E while holding one, just drop it.
+        if (playerData != null && playerData.HasWeapon())
+        {
+            RPC_RequestDropCurrentWeapon(Object.InputAuthority);
+        }
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestDropCurrentWeapon(PlayerRef playerRef, RpcInfo info = default)
     {
-        // Server-side validation
+        // Validation: Only the owner or the server can trigger this
         if (info.Source != playerRef && info.Source != PlayerRef.None) return;
 
         WeaponPickup heldWeapon = WeaponPickup.GetHeldWeapon(playerRef);
         if (heldWeapon != null)
         {
             Vector3 dropPosition = transform.position;
+            // Pop the weapon out with some random velocity
             Vector2 dropVelocity = new Vector2(Random.Range(-2f, 2f), Random.Range(2f, 4f));
 
             WeaponAimController aimController = GetComponent<WeaponAimController>();
@@ -106,6 +109,7 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
             if (playerData != null)
             {
+                // Reset player's held weapon index/state
                 playerData.PickupWeapon(0);
             }
         }
