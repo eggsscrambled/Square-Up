@@ -23,4 +23,4 @@ MonoBehaviour:
   knockbackForce: 50
   isAutomatic: 0
   recoilForce: 50
-  bulletLifetime: 0.175
+  bulletLifetime: 0.14
