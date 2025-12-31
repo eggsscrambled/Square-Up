@@ -292,4 +292,4 @@ MonoBehaviour:
     m_Bits: 576
   combatLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0

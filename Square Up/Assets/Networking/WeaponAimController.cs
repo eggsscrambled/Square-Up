@@ -7,6 +7,7 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] private TickTimer fireRateTimer { get; set; }
     [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
     [Networked] private int nextBulletId { get; set; }
+    [Networked, OnChangedRender(nameof(OnMuzzleFlashChanged))] private NetworkBool triggerMuzzleFlash { get; set; }
 
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
@@ -34,6 +35,13 @@ public class WeaponAimController : NetworkBehaviour
 
         if (GetInput(out NetworkInputData input))
         {
+            // CRITICAL FIX: Only process firing logic if we have input authority OR state authority
+            // Proxy clients (no input authority, no state authority) should not process this
+            if (!Object.HasInputAuthority && !Object.HasStateAuthority)
+            {
+                return;
+            }
+
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
@@ -63,8 +71,6 @@ public class WeaponAimController : NetworkBehaviour
 
                 if (shouldFire)
                 {
-                    if (Runner.IsForward) TriggerLocalMuzzleFlash();
-
                     Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
                     Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
                     Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
@@ -77,6 +83,9 @@ public class WeaponAimController : NetworkBehaviour
                         nextBulletId += data.bulletAmount; // Reserve IDs for all bullets in this shot
                         fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
                         if (_playerController != null) _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
+
+                        // Trigger muzzle flash for all clients
+                        triggerMuzzleFlash = !triggerMuzzleFlash;
                     }
                     else
                     {
@@ -96,7 +105,18 @@ public class WeaponAimController : NetworkBehaviour
         }
     }
 
-    private void TriggerLocalMuzzleFlash()
+    public override void Render()
+    {
+        // Render is called every frame, no change detection needed here anymore
+    }
+
+    private void OnMuzzleFlashChanged()
+    {
+        // This is called on all clients when triggerMuzzleFlash changes
+        TriggerMuzzleFlash();
+    }
+
+    private void TriggerMuzzleFlash()
     {
         if (_currentWeapon == null) return;
 
@@ -113,7 +133,7 @@ public class WeaponAimController : NetworkBehaviour
 
     private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos, int seed, int startBulletId)
     {
-        Debug.Log($"[Fire] Using seed: {seed}, StartBulletId: {startBulletId}, HasStateAuthority: {Object.HasStateAuthority}");
+        Debug.Log($"[Fire] Using seed: {seed}, StartBulletId: {startBulletId}, HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}");
 
         for (int i = 0; i < data.bulletAmount; i++)
         {
@@ -123,9 +143,8 @@ public class WeaponAimController : NetworkBehaviour
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            bool isClient = !Object.HasStateAuthority && Object.HasInputAuthority;
-
-            if (isClient && data.bulletVisualPrefab != null)
+            // Only create predicted bullets on the client with input authority
+            if (Object.HasInputAuthority && !Object.HasStateAuthority && data.bulletVisualPrefab != null)
             {
                 GameObject predicted = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRotation);
                 var predBullet = predicted.GetComponent<PredictedBullet>();
@@ -135,6 +154,7 @@ public class WeaponAimController : NetworkBehaviour
                 }
             }
 
+            // Only spawn networked bullets on the server (state authority)
             if (Object.HasStateAuthority)
             {
                 Runner.Spawn(data.bulletPrefab, spawnPos, spawnRotation, Object.InputAuthority, (runner, obj) =>
