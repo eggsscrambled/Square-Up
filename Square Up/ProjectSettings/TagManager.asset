@@ -6,6 +6,7 @@ TagManager:
   tags:
   - GunRingUI
   - DashAbilityUI
+  - SpawnPoints
   layers:
   - Default
   - TransparentFX
