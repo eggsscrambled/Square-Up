@@ -11,7 +11,7 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Dash")]
     [SerializeField] private bool enableDash = false;
-    [SerializeField] private float dashSpeed = 20f;
+    [SerializeField] private float dashSpeedMultiplier = 2.5f; // Multiplier for move speed during dash
     [SerializeField] private float dashDuration = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
@@ -26,7 +26,6 @@ public class PlayerController : NetworkBehaviour
     [Networked] private Vector2 RecoilVelocity { get; set; }
     [Networked] private TickTimer DashTimer { get; set; }
     [Networked] private TickTimer DashCooldownTimer { get; set; }
-    [Networked] private Vector2 DashDirection { get; set; }
     [Networked] private NetworkBool IsDashing { get; set; }
 
     private void Awake()
@@ -49,37 +48,43 @@ public class PlayerController : NetworkBehaviour
             bool isDashing = !DashTimer.ExpiredOrNotRunning(Runner);
             IsDashing = isDashing;
 
-            if (isDashing)
+            // Calculate current effective move speed
+            float currentMoveSpeed = isDashing ? moveSpeed * dashSpeedMultiplier : moveSpeed;
+
+            // Check for dash input
+            if (enableDash &&
+                input.buttons.IsSet(MyButtons.Dash) &&
+                DashCooldownTimer.ExpiredOrNotRunning(Runner) &&
+                input.movementInput.magnitude > 0.1f &&
+                !isDashing)
             {
-                currentVelocity = DashDirection * dashSpeed;
+                DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
+                DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
+            }
+
+            // Apply movement with appropriate speed
+            Vector2 targetVelocity = input.movementInput * currentMoveSpeed;
+
+            if (input.movementInput.magnitude > 0.01f)
+            {
+                // When dashing, use higher acceleration for more responsive feel
+                float currentAcceleration = isDashing ? acceleration * 2f : acceleration;
+                currentVelocity = Vector2.MoveTowards(currentVelocity, targetVelocity, currentAcceleration * Runner.DeltaTime);
             }
             else
             {
-                // Corrected Dash Button Access for Fusion 2
-                if (enableDash && input.buttons.IsSet(MyButtons.Dash) && DashCooldownTimer.ExpiredOrNotRunning(Runner) && input.movementInput.magnitude > 0.1f)
-                {
-                    DashDirection = input.movementInput.normalized;
-                    DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
-                    DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
-                    currentVelocity = DashDirection * dashSpeed;
-                }
-                else
-                {
-                    Vector2 targetVelocity = input.movementInput * moveSpeed;
-                    if (input.movementInput.magnitude > 0.01f)
-                        currentVelocity = Vector2.MoveTowards(currentVelocity, targetVelocity, acceleration * Runner.DeltaTime);
-                    else
-                        currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, friction * Runner.DeltaTime);
-                }
+                currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, friction * Runner.DeltaTime);
             }
 
+            // Apply recoil decay
             RecoilVelocity = Vector2.Lerp(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
+
+            // Update networked velocity and apply to rigidbody
             Velocity = currentVelocity;
             _rb.linearVelocity = Velocity + RecoilVelocity;
         }
     }
 
-    // FIXES COMPILER ERROR IN NetworkedGameUIManager
     public float GetDashCooldownProgress()
     {
         if (Runner == null || DashCooldownTimer.ExpiredOrNotRunning(Runner)) return 0f;
