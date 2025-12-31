@@ -78,22 +78,37 @@ public class NetworkedProjectile : NetworkBehaviour
 
         Vector2 movement = Velocity * Runner.DeltaTime;
 
-        // 3. Collision Detection (Only State Authority applies damage/despawns)
-        // But we check on both so the client stops the bullet visually immediately
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, movement.normalized, movement.magnitude, hitLayers);
-
-        if (hit.collider != null)
+        // Check for player hits (damage only, don't stop)
+        if (Object.HasStateAuthority)
         {
-            // Ignore owner
-            if (hit.collider.TryGetComponent<PlayerData>(out var data) && data.Object.InputAuthority == Owner)
+            RaycastHit2D[] playerHits = Physics2D.RaycastAll(transform.position, movement.normalized, movement.magnitude, playerLayer);
+
+            foreach (var playerHit in playerHits)
             {
-                transform.position += (Vector3)movement; // Keep moving past the owner
+                // Ignore owner
+                if (playerHit.collider.TryGetComponent<PlayerData>(out var data) && data.Object.InputAuthority == Owner)
+                    continue;
+
+                // Deal damage but don't stop the bullet
+                if (playerHit.collider.TryGetComponent<PlayerData>(out PlayerData playerData))
+                {
+                    playerData.TakeDamage(Damage);
+
+                    if (playerHit.collider.TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                    {
+                        rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
+                    }
+                }
             }
-            else
-            {
-                OnHit(hit);
-                return;
-            }
+        }
+
+        // Check for environment collision (stops and destroys bullet)
+        RaycastHit2D environmentHit = Physics2D.Raycast(transform.position, movement.normalized, movement.magnitude, hitLayers);
+
+        if (environmentHit.collider != null)
+        {
+            OnHit(environmentHit);
+            return;
         }
 
         // Apply Position
@@ -111,24 +126,9 @@ public class NetworkedProjectile : NetworkBehaviour
     {
         _hasHit = true;
 
-        // Only the Server applies damage and effects
+        // Only the Server despawns on environment collision
         if (Object.HasStateAuthority)
         {
-            // Check if the hit object is on the player layer for damage
-            if (((1 << hit.collider.gameObject.layer) & playerLayer) != 0)
-            {
-                if (hit.collider.TryGetComponent<PlayerData>(out PlayerData playerData))
-                {
-                    playerData.TakeDamage(Damage);
-
-                    if (hit.collider.TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
-                    {
-                        rb.AddForce(Velocity.normalized * KnockbackForce, ForceMode2D.Impulse);
-                    }
-                }
-            }
-
-            // Despawn on server
             Runner.Despawn(Object);
         }
     }
