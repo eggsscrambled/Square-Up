@@ -311,7 +311,7 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDamping: 0
+  m_LinearDamping: 0.25
   m_AngularDamping: 0.05
   m_GravityScale: 0
   m_Material: {fileID: 0}
@@ -379,9 +379,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponPickupHandler
   pickupCheckRadius: 4
-  weaponLayer:
-    serializedVersion: 2
-    m_Bits: 256
 --- !u!114 &-3703887877102232386
 MonoBehaviour:
   m_ObjectHideFlags: 0
