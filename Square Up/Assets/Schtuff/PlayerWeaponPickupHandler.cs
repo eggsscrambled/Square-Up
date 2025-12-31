@@ -4,12 +4,24 @@ using UnityEngine;
 public class PlayerWeaponPickupHandler : NetworkBehaviour
 {
     [SerializeField] private float pickupCheckRadius = 2f;
-    [SerializeField] private LayerMask weaponLayer;
     private PlayerData playerData;
+    private WeaponPickup[] allWeapons;
 
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
+    }
+
+    public override void Spawned()
+    {
+        // Cache all weapons in the scene once
+        RefreshWeaponList();
+    }
+
+    private void RefreshWeaponList()
+    {
+        allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
+        Debug.Log($"[Player {Object.InputAuthority}] Found {allWeapons.Length} total weapons in scene");
     }
 
     public override void FixedUpdateNetwork()
@@ -24,7 +36,7 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
         {
             if (input.pickup)
             {
-                Debug.Log($"[Client] E KEY INPUT RECEIVED for player {Object.InputAuthority}");
+                Debug.Log($"[Client {Object.InputAuthority}] E KEY INPUT RECEIVED");
                 TryPickupNearbyWeapon();
             }
         }
@@ -32,42 +44,38 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
 
     private void TryPickupNearbyWeapon()
     {
-        Debug.Log($"[Client] Attempting pickup for player {Object.InputAuthority}");
-
-        Collider2D[] nearbyWeapons = Physics2D.OverlapCircleAll(transform.position, pickupCheckRadius, weaponLayer);
-        Debug.Log($"[Client] Found {nearbyWeapons.Length} nearby weapon colliders");
+        // Refresh weapon list periodically in case new ones spawned
+        if (allWeapons == null || allWeapons.Length == 0)
+        {
+            RefreshWeaponList();
+        }
 
         WeaponPickup closestWeapon = null;
         float closestDistance = float.MaxValue;
 
-        // Find the closest weapon that ISN'T picked up
-        foreach (var col in nearbyWeapons)
+        // Check all weapons directly instead of using Physics2D
+        foreach (var weapon in allWeapons)
         {
-            WeaponPickup weapon = col.GetComponent<WeaponPickup>();
+            if (weapon == null || weapon.GetIsPickedUp())
+                continue;
 
-            // FIXED: Remove the IsPlayerNearby check - just check if it's not picked up
-            if (weapon != null && !weapon.GetIsPickedUp())
+            float distance = Vector3.Distance(transform.position, weapon.transform.position);
+
+            if (distance <= pickupCheckRadius && distance < closestDistance)
             {
-                float distance = Vector3.Distance(transform.position, weapon.transform.position);
-                Debug.Log($"[Client] Found weapon at distance {distance}, picked up: {weapon.GetIsPickedUp()}");
-
-                if (distance < closestDistance)
-                {
-                    closestDistance = distance;
-                    closestWeapon = weapon;
-                }
+                closestDistance = distance;
+                closestWeapon = weapon;
             }
         }
 
-        // Try to pickup the closest weapon
         if (closestWeapon != null)
         {
-            Debug.Log($"[Client] Calling TryPickup on closest weapon");
+            Debug.Log($"[Client {Object.InputAuthority}] Trying to pickup weapon at distance {closestDistance}");
             closestWeapon.TryPickup(Object.InputAuthority);
         }
         else
         {
-            Debug.Log($"[Client] No valid weapons found to pickup");
+            Debug.Log($"[Client {Object.InputAuthority}] No weapons in range");
         }
     }
 
