@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: Uzi
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponID: Uzi
-  fireRate: 17
-  bulletSpeed: 85
+  fireRate: 200
+  bulletSpeed: 70
   bulletAmount: 1
   spreadAmount: 10
   maxSpreadDegrees: 30
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}
   damage: 9
   knockbackForce: 5
-  isAutomatic: 0
+  isAutomatic: 1
   recoilForce: 1.5
-  bulletLifetime: 0.35
+  bulletLifetime: 0.25
