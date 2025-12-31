@@ -5,41 +5,26 @@ public class WeaponAimController : NetworkBehaviour
 {
     [Networked] public NetworkId CurrentWeaponId { get; set; }
     [Networked] private TickTimer fireRateTimer { get; set; }
-    [Networked] private NetworkBool lastFireState { get; set; }
-    [Networked] private int fireCounter { get; set; }
 
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private PlayerController _playerController;
-    private GameManager _gameManager;
-    private bool _hasFiredThisFrame = false;
-
-    private float _clientFireCooldown = 0f;
-    private int _lastProcessedFireCounter = 0;
 
     public override void Spawned()
     {
         _playerData = GetComponent<PlayerData>();
         _playerController = GetComponent<PlayerController>();
-        _gameManager = FindObjectOfType<GameManager>();
     }
 
     public override void FixedUpdateNetwork()
     {
-        _hasFiredThisFrame = false;
-
-        if (_clientFireCooldown > 0)
-        {
-            _clientFireCooldown -= Runner.DeltaTime;
-        }
-
         ResolveWeaponReference();
 
-        if (_currentWeapon == null || _playerData == null || _playerData.Dead)
-            return;
+        if (_currentWeapon == null || _playerData == null || _playerData.Dead) return;
 
         if (GetInput(out NetworkInputData input))
         {
+            // 1. Update Aim Direction (Only State Authority updates the Networked property in WeaponPickup)
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
@@ -47,244 +32,59 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
-            if (Object.HasInputAuthority)
+            // 2. Firing Logic (Predicted)
+            WeaponData data = _currentWeapon.GetWeaponData();
+            if (data != null && fireRateTimer.ExpiredOrNotRunning(Runner))
             {
-                WeaponData data = _currentWeapon.GetWeaponData();
-
-                bool canFire = fireRateTimer.ExpiredOrNotRunning(Runner) &&
-                               _clientFireCooldown <= 0 &&
-                               !_hasFiredThisFrame &&
-                               fireCounter == _lastProcessedFireCounter;
-
-                if (data != null && canFire)
+                // Check for fire input (Automatic vs Semi-Auto logic can be added here)
+                if (input.fire)
                 {
-                    bool shouldFire = data.isAutomatic
-                        ? input.fire
-                        : (input.fire && !lastFireState);
+                    fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
 
-                    if (shouldFire)
-                    {
-                        _hasFiredThisFrame = true;
-                        _clientFireCooldown = (1f / data.fireRate) + 0.05f;
+                    Vector3 spawnPos = _currentWeapon.transform.position;
+                    // Find FireOrigin if it exists
+                    Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
+                    if (fireOrigin != null) spawnPos = fireOrigin.position;
 
-                        if (Object.HasStateAuthority)
-                        {
-                            fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
-                            fireCounter++;
-                            _lastProcessedFireCounter = fireCounter;
-                        }
-                        else
-                        {
-                            _lastProcessedFireCounter++;
-                        }
+                    Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
 
-                        Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
-                        Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)weaponHoldPos).normalized;
-
-                        FireWeapon(aimFromWeapon, data);
-                    }
-                }
-
-                if (Object.HasStateAuthority)
-                {
-                    lastFireState = input.fire;
+                    Fire(baseAimDir, data, spawnPos);
                 }
             }
         }
     }
 
-    private void FireWeapon(Vector2 aimDirection, WeaponData weaponData)
+    private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos)
     {
-        if (aimDirection.magnitude < 0.1f) return;
-
-        Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
-        Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
-
-        // Pre-calculate all bullet directions so networked and visual use the same spread
-        Vector2[] bulletDirections = new Vector2[weaponData.bulletAmount];
-        for (int i = 0; i < weaponData.bulletAmount; i++)
+        for (int i = 0; i < data.bulletAmount; i++)
         {
-            bulletDirections[i] = CalculateSpreadDirection(aimDirection.normalized, weaponData.spreadAmount, weaponData.maxSpreadDegrees);
-        }
+            Vector2 spreadDir = CalculateSpread(direction, data.spreadAmount, data.maxSpreadDegrees);
 
-        // Apply recoil on both host and client (will be sent to state authority)
-        if (_playerController != null && weaponData.recoilForce > 0)
-        {
-            Vector2 recoilDirection = -aimDirection.normalized * weaponData.recoilForce;
-
-            if (Object.HasStateAuthority)
+            // This Spawn is PREDICTED. Client spawns it immediately, Server confirms.
+            Runner.Spawn(data.bulletPrefab, spawnPos, Quaternion.identity, Object.InputAuthority, (runner, obj) =>
             {
-                _playerController.ApplyRecoil(recoilDirection);
-            }
-            else
-            {
-                RPC_ApplyRecoil(recoilDirection);
-            }
+                var projectile = obj.GetComponent<NetworkedProjectile>();
+                projectile.Velocity = spreadDir * data.bulletSpeed;
+                projectile.Owner = Object.InputAuthority;
+            });
         }
 
-        if (Object.HasStateAuthority)
+        // Apply Recoil locally and on server
+        if (_playerController != null && data.recoilForce > 0)
         {
-            SpawnFunctionalProjectiles(spawnPos, weaponData, bulletDirections);
-
-            // Get projectile settings from the bullet prefab using getter methods
-            NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
-            int hitLayersMask = projSettings != null ? projSettings.GetHitLayers() : Physics2D.AllLayers;
-            bool useGravity = projSettings != null && projSettings.GetUseGravity();
-            float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
-
-            RPC_SpawnVisualProjectiles(
-                bulletDirections,
-                spawnPos,
-                weaponData.bulletAmount,
-                _currentWeapon.Object.Id,
-                weaponData.bulletSpeed,
-                weaponData.bulletLifetime,
-                hitLayersMask,
-                useGravity,
-                gravityScale
-            );
-        }
-        else
-        {
-            RPC_RequestFireWeapon(bulletDirections, spawnPos);
+            _playerController.ApplyRecoil(-direction * data.recoilForce);
         }
     }
 
-    private void SpawnFunctionalProjectiles(Vector3 spawnPos, WeaponData weaponData, Vector2[] directions)
+    private Vector2 CalculateSpread(Vector2 baseDir, float spread, float maxDegrees)
     {
-        for (int i = 0; i < directions.Length; i++)
-        {
-            Vector2 direction = directions[i];
-            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-            NetworkObject projectile = Runner.Spawn(
-                weaponData.bulletPrefab,
-                spawnPos,
-                spawnRotation,
-                Object.InputAuthority
-            );
-
-            if (projectile.TryGetComponent<NetworkedProjectile>(out var proj))
-            {
-                proj.Initialize(weaponData, direction, Object.InputAuthority);
-            }
-        }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_ApplyRecoil(Vector2 recoilDirection)
-    {
-        if (_playerController != null)
-        {
-            _playerController.ApplyRecoil(recoilDirection);
-        }
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_SpawnVisualProjectiles(
-        Vector2[] bulletDirections,
-        Vector3 spawnPos,
-        int bulletAmount,
-        NetworkId weaponId,
-        float bulletSpeed,
-        float bulletLifetime,
-        int hitLayersMask,
-        bool useGravity,
-        float gravityScale)
-    {
-        WeaponPickup weapon = _currentWeapon;
-        if (weapon == null || weapon.Object.Id != weaponId)
-        {
-            if (Runner.TryFindObject(weaponId, out NetworkObject weaponObj))
-            {
-                weapon = weaponObj.GetComponent<WeaponPickup>();
-            }
-        }
-
-        if (weapon == null) return;
-
-        WeaponData weaponData = weapon.GetWeaponData();
-        if (weaponData == null) return;
-
-        // Convert int back to LayerMask
-        LayerMask hitLayers = hitLayersMask;
-
-        for (int i = 0; i < bulletDirections.Length; i++)
-        {
-            Vector2 direction = bulletDirections[i];
-            Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, direction);
-
-            GameObject visualProjectile = Instantiate(
-                weaponData.bulletPrefab.gameObject,
-                spawnPos,
-                spawnRotation
-            );
-
-            VisualProjectile visualComp = visualProjectile.AddComponent<VisualProjectile>();
-            visualComp.Initialize(weaponData, direction, bulletLifetime, hitLayers, useGravity, gravityScale);
-        }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_RequestFireWeapon(Vector2[] bulletDirections, Vector3 spawnPos)
-    {
-        if (_currentWeapon == null || _playerData == null || _playerData.Dead)
-            return;
-
-        WeaponData weaponData = _currentWeapon.GetWeaponData();
-        if (weaponData == null) return;
-
-        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / weaponData.fireRate);
-        fireCounter++;
-
-        SpawnFunctionalProjectiles(spawnPos, weaponData, bulletDirections);
-
-        // Get projectile settings from the bullet prefab using getter methods
-        NetworkedProjectile projSettings = weaponData.bulletPrefab.GetComponent<NetworkedProjectile>();
-        int hitLayersMask = projSettings != null ? projSettings.GetHitLayers() : Physics2D.AllLayers;
-        bool useGravity = projSettings != null && projSettings.GetUseGravity();
-        float gravityScale = projSettings != null ? projSettings.GetGravityScale() : 1f;
-
-        RPC_SpawnVisualProjectiles(
-            bulletDirections,
-            spawnPos,
-            weaponData.bulletAmount,
-            _currentWeapon.Object.Id,
-            weaponData.bulletSpeed,
-            weaponData.bulletLifetime,
-            hitLayersMask,
-            useGravity,
-            gravityScale
-        );
-    }
-
-    private void ResolveWeaponReference()
-    {
-        if (CurrentWeaponId != default && (_currentWeapon == null || _currentWeapon.Object.Id != CurrentWeaponId))
-        {
-            if (Runner.TryFindObject(CurrentWeaponId, out NetworkObject weaponObj))
-            {
-                _currentWeapon = weaponObj.GetComponent<WeaponPickup>();
-            }
-        }
-        else if (CurrentWeaponId == default)
-        {
-            _currentWeapon = null;
-        }
-    }
-
-    private Vector2 CalculateSpreadDirection(Vector2 baseDirection, float spreadAmount, float maxSpread)
-    {
-        if (spreadAmount <= 0) return baseDirection;
-
-        float spreadAngle = Mathf.Min(spreadAmount, maxSpread);
-        float randomAngle = Random.Range(-spreadAngle, spreadAngle);
-
-        float angle = Mathf.Atan2(baseDirection.y, baseDirection.x) * Mathf.Rad2Deg;
-        angle += randomAngle;
-
+        if (spread <= 0) return baseDir;
+        float randomAngle = Random.Range(-spread, spread);
+        float angle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg + randomAngle;
         return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
+
+    // --- PICKUP LINKING METHODS (Fixes your Compiler Error) ---
 
     public void SetCurrentWeapon(WeaponPickup weapon)
     {
@@ -301,6 +101,23 @@ public class WeaponAimController : NetworkBehaviour
         {
             _currentWeapon = null;
             CurrentWeaponId = default;
+        }
+    }
+
+    // --- UTILITY ---
+
+    private void ResolveWeaponReference()
+    {
+        if (CurrentWeaponId != default && (_currentWeapon == null || _currentWeapon.Object.Id != CurrentWeaponId))
+        {
+            if (Runner.TryFindObject(CurrentWeaponId, out NetworkObject weaponObj))
+            {
+                _currentWeapon = weaponObj.GetComponent<WeaponPickup>();
+            }
+        }
+        else if (CurrentWeaponId == default)
+        {
+            _currentWeapon = null;
         }
     }
 }
