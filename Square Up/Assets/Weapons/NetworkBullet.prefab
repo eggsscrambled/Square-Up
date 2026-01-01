@@ -313,12 +313,16 @@ MonoBehaviour:
   _Velocity: {x: 0, y: 0}
   _Damage: 0
   _Knockback: 0
+  _BulletId: 0
   environmentLayer:
     serializedVersion: 2
     m_Bits: 64
   combatLayer:
     serializedVersion: 2
     m_Bits: 128
+  fizzlePrefab: {fileID: 8012426408988045600, guid: 84363b664c72f4d43b7d6889ccd8b004, type: 3}
+  environmentCollidePrefab: {fileID: 4950077938850311111, guid: 2d7bad22c0c90ee4389f7cd43bcbfe0b, type: 3}
+  combatCollidePrefab: {fileID: 8002429645054038217, guid: a4d1423c24a1e4b48a04bbe181bf8cff, type: 3}
 --- !u!114 &9017563858928968914
 MonoBehaviour:
   m_ObjectHideFlags: 0

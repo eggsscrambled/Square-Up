@@ -293,3 +293,5 @@ MonoBehaviour:
   combatLayer:
     serializedVersion: 2
     m_Bits: 0
+  fizzlePrefab: {fileID: 8012426408988045600, guid: 84363b664c72f4d43b7d6889ccd8b004, type: 3}
+  collidePrefab: {fileID: 4950077938850311111, guid: 2d7bad22c0c90ee4389f7cd43bcbfe0b, type: 3}

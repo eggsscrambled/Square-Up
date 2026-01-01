@@ -8,6 +8,11 @@ public class PredictedBullet : MonoBehaviour
     [Header("Detection Layers")]
     [SerializeField] private LayerMask environmentLayer;
     [SerializeField] private LayerMask combatLayer;
+
+    [Header("Particle Effects")]
+    public GameObject fizzlePrefab;
+    public GameObject collidePrefab;
+
     private LayerMask collisionLayers;
 
     // Unique ID to match with networked bullet
@@ -35,6 +40,17 @@ public class PredictedBullet : MonoBehaviour
         if (hit.collider != null)
         {
             transform.position = hit.point;
+
+            // Instantiate collision effect aligned to surface normal
+            if (collidePrefab != null)
+            {
+                // Calculate rotation from surface normal
+                float angle = Mathf.Atan2(hit.normal.y, hit.normal.x) * Mathf.Rad2Deg;
+                Quaternion rotation = Quaternion.Euler(0, 0, angle);
+
+                Instantiate(collidePrefab, hit.point, rotation);
+            }
+
             DestroyPredicted();
             return;
         }
@@ -50,6 +66,12 @@ public class PredictedBullet : MonoBehaviour
         lifetime -= Time.deltaTime;
         if (lifetime <= 0)
         {
+            // Instantiate fizzle effect at bullet position
+            if (fizzlePrefab != null)
+            {
+                Instantiate(fizzlePrefab, transform.position, Quaternion.identity);
+            }
+
             DestroyPredicted();
         }
     }
