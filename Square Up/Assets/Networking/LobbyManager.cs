@@ -19,7 +19,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private bool _pickupAccumulator;
     private bool _dashAccumulator;
     private bool _fireAccumulator;
-    private bool _reloadAccumulator; // Add this
+    private bool _reloadAccumulator;
 
     async void Start()
     {
@@ -40,7 +40,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         if (Input.GetButton("Fire1")) _fireAccumulator = true;
         if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
-        if (Input.GetKeyDown(KeyCode.R)) _reloadAccumulator = true; // Add this
+        if (Input.GetKeyDown(KeyCode.R)) _reloadAccumulator = true;
     }
 
     private void RefreshSpawnPoints()
@@ -131,6 +131,13 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             NetworkObject networkPlayer = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
             runner.SetPlayerObject(player, networkPlayer);
             spawnedPlayers.Add(player, networkPlayer);
+        }
+
+        // NEW: Initialize PredictedBulletManager when local player joins
+        if (player == runner.LocalPlayer && PredictedBulletManager.Instance != null)
+        {
+            PredictedBulletManager.Instance.SetLocalRunner(runner);
+            Debug.Log($"<color=cyan>PredictedBulletManager initialized for local player (IsHost: {runner.IsServer})</color>");
         }
     }
 

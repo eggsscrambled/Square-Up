@@ -1,21 +1,21 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Fusion;
 
-/// <summary>
-/// Manages predicted bullets and destroys them when their networked counterparts spawn
-/// </summary>
 public class PredictedBulletManager : MonoBehaviour
 {
     public static PredictedBulletManager Instance { get; private set; }
 
     private Dictionary<int, PredictedBullet> predictedBullets = new Dictionary<int, PredictedBullet>();
 
+    // Store reference to local runner for host check
+    private NetworkRunner localRunner;
+
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -23,37 +23,43 @@ public class PredictedBulletManager : MonoBehaviour
         }
     }
 
+    // Call this method from your network initialization code
+    public void SetLocalRunner(NetworkRunner runner)
+    {
+        localRunner = runner;
+    }
+
+    // Check if local player is the host
+    public bool IsLocalPlayerHost()
+    {
+        if (localRunner == null) return false;
+
+        // Check if local runner is the server/host
+        return localRunner.IsServer;
+    }
+
     public void RegisterPredictedBullet(PredictedBullet bullet)
     {
-        if (bullet != null && !predictedBullets.ContainsKey(bullet.BulletId))
+        if (!predictedBullets.ContainsKey(bullet.BulletId))
         {
-            predictedBullets[bullet.BulletId] = bullet;
-            Debug.Log($"[PredictedBulletManager] Registered predicted bullet ID: {bullet.BulletId}");
+            predictedBullets.Add(bullet.BulletId, bullet);
         }
     }
 
     public void UnregisterPredictedBullet(PredictedBullet bullet)
     {
-        if (bullet != null && predictedBullets.ContainsKey(bullet.BulletId))
-        {
-            predictedBullets.Remove(bullet.BulletId);
-        }
+        predictedBullets.Remove(bullet.BulletId);
     }
 
-    /// <summary>
-    /// Called by NetworkedProjectile when it spawns on the client
-    /// Destroys the matching predicted bullet
-    /// </summary>
     public void OnNetworkedBulletSpawned(int bulletId)
     {
-        if (predictedBullets.TryGetValue(bulletId, out PredictedBullet predicted))
+        if (predictedBullets.TryGetValue(bulletId, out PredictedBullet bullet))
         {
-            Debug.Log($"[PredictedBulletManager] Destroying predicted bullet ID: {bulletId} (networked version spawned)");
-            predictedBullets.Remove(bulletId);
-            if (predicted != null)
+            if (bullet != null)
             {
-                Destroy(predicted.gameObject);
+                Destroy(bullet.gameObject);
             }
+            predictedBullets.Remove(bulletId);
         }
     }
 

@@ -21,7 +21,6 @@ public class NetworkedProjectile : NetworkBehaviour
 
     private TickTimer _ignoreOwnerTimer;
     private bool _hasNotifiedPrediction = false;
-    private bool _hasSpawnedCombatEffect = false;
     private bool _hasSpawnedEnvironmentEffect = false;
     private bool _hasSpawnedFizzleEffect = false;
 
@@ -102,26 +101,7 @@ public class NetworkedProjectile : NetworkBehaviour
             }
             else
             {
-                // Spawn combat hit effect
-                if (combatCollidePrefab != null && hit.GameObject != null && !_hasSpawnedCombatEffect)
-                {
-                    Vector3 hitPoint = hit.Point;
-                    Vector2 normal = -Velocity.normalized;
-                    float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg;
-                    Quaternion rotation = Quaternion.Euler(0, 0, angle);
-
-                    GameObject effectInstance = Instantiate(combatCollidePrefab, hitPoint, rotation);
-                    Color playerColor = GetPlayerColor(hit.GameObject);
-                    ApplyColorToParticles(effectInstance, playerColor);
-
-                    // Only set the flag during forward simulation to allow resimulation to spawn again
-                    if (Runner.IsForward)
-                    {
-                        _hasSpawnedCombatEffect = true;
-                    }
-                }
-
-                // Apply damage and despawn (STATE AUTHORITY ONLY)
+                // COMBAT HIT DETECTED - Only state authority handles it
                 if (Object.HasStateAuthority)
                 {
                     // Get hit player's input authority
@@ -133,6 +113,7 @@ public class NetworkedProjectile : NetworkBehaviour
                     float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg;
                     Color playerColor = GetPlayerColor(hit.GameObject);
 
+                    // Send RPC to ALL clients to spawn effect (they'll filter by player)
                     RPC_SpawnBloodEffect(hitPlayer, hitPoint, angle, playerColor);
 
                     ApplyHitLogic(hit);
