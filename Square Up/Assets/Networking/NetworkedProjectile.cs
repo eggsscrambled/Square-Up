@@ -124,6 +124,17 @@ public class NetworkedProjectile : NetworkBehaviour
                 // Apply damage and despawn (STATE AUTHORITY ONLY)
                 if (Object.HasStateAuthority)
                 {
+                    // Get hit player's input authority
+                    PlayerRef hitPlayer = hit.Hitbox.Root.Object.InputAuthority;
+
+                    // Call RPC to show blood effect on the hit player's client
+                    Vector3 hitPoint = hit.Point;
+                    Vector2 normal = -Velocity.normalized;
+                    float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg;
+                    Color playerColor = GetPlayerColor(hit.GameObject);
+
+                    RPC_SpawnBloodEffect(hitPlayer, hitPoint, angle, playerColor);
+
                     ApplyHitLogic(hit);
                     Runner.Despawn(Object);
                     return;
@@ -140,6 +151,18 @@ public class NetworkedProjectile : NetworkBehaviour
         {
             float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnBloodEffect(PlayerRef targetPlayer, Vector3 hitPoint, float angle, Color playerColor)
+    {
+        // Only spawn on the target player's client
+        if (Runner.LocalPlayer == targetPlayer && combatCollidePrefab != null)
+        {
+            Quaternion rotation = Quaternion.Euler(0, 0, angle);
+            GameObject effectInstance = Instantiate(combatCollidePrefab, hitPoint, rotation);
+            ApplyColorToParticles(effectInstance, playerColor);
         }
     }
 
