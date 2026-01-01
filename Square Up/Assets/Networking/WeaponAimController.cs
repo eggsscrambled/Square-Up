@@ -151,7 +151,13 @@ public class WeaponAimController : NetworkBehaviour
             RemainingAmmo--;
             // Sync ammo to weapon
             _currentWeapon.SetCurrentAmmo(RemainingAmmo);
-            muzzleFlashCounter++; // This increments for all shooters
+
+            // FIX: Only increment counter if we're NOT the input authority
+            // (so other clients can see our muzzle flash)
+            if (!Object.HasInputAuthority)
+            {
+                muzzleFlashCounter++;
+            }
 
             if (_playerController != null)
                 _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
@@ -190,7 +196,8 @@ public class WeaponAimController : NetworkBehaviour
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            if (Object.HasInputAuthority && !Object.HasStateAuthority && data.bulletVisualPrefab != null)
+            // FIX: Only spawn predicted bullets during FORWARD simulation (not resimulation)
+            if (Object.HasInputAuthority && !Object.HasStateAuthority && data.bulletVisualPrefab != null && Runner.IsForward)
             {
                 GameObject predicted = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRotation);
                 var predBullet = predicted.GetComponent<PredictedBullet>();
