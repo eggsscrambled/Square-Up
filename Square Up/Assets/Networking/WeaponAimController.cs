@@ -4,7 +4,11 @@ using Fusion;
 public class WeaponAimController : NetworkBehaviour
 {
     [Networked] public NetworkId CurrentWeaponId { get; set; }
-    [Networked] private TickTimer fireRateTimer { get; set; }
+
+    [Header("Networked State (Debug)")]
+    [Networked] public TickTimer fireRateTimer { get; set; }
+    [Networked] public TickTimer reloadTimer { get; set; }
+    [Networked] public int RemainingAmmo { get; set; }
     [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
     [Networked] private int nextBulletId { get; set; }
     [Networked] private int muzzleFlashCounter { get; set; }
@@ -12,13 +16,11 @@ public class WeaponAimController : NetworkBehaviour
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
 
-    private TickTimer _clientFireRateTimer;
-    private int _clientNextBulletId = 0;
     private int _lastMuzzleFlashCounter = -1;
-
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private PlayerController _playerController;
+    private bool _hasPlayedMidReloadSound = false;
 
     public WeaponPickup CurrentWeapon => _currentWeapon;
 
@@ -32,18 +34,49 @@ public class WeaponAimController : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         ResolveWeaponReference();
-
         if (_currentWeapon == null || _playerData == null || _playerData.Dead) return;
+
+        WeaponData data = _currentWeapon.GetWeaponData();
+        if (data == null) return;
+
+        // 1. CHECK FOR RELOAD COMPLETION (State Authority Only)
+        if (Object.HasStateAuthority && reloadTimer.Expired(Runner))
+        {
+            RemainingAmmo = data.maxAmmo;
+            // Sync ammo back to weapon
+            _currentWeapon.SetCurrentAmmo(RemainingAmmo);
+            reloadTimer = TickTimer.None;
+            _hasPlayedMidReloadSound = false;
+
+            // Play reload end sound
+            if (_currentWeapon != null)
+            {
+                _currentWeapon.PlayReloadEndSound();
+            }
+
+            Debug.Log($"<color=green>SERVER: Reload Complete. Ammo: {RemainingAmmo}</color>");
+        }
+
+        // Check for mid-reload sound (at 50% progress)
+        if (Object.HasStateAuthority && !reloadTimer.ExpiredOrNotRunning(Runner) && !_hasPlayedMidReloadSound)
+        {
+            float remainingTime = reloadTimer.RemainingTime(Runner) ?? 0f;
+            float elapsedTime = data.reloadTimeSeconds - remainingTime;
+            float progress = elapsedTime / data.reloadTimeSeconds;
+
+            if (progress >= 0.5f)
+            {
+                _hasPlayedMidReloadSound = true;
+                if (_currentWeapon != null)
+                {
+                    _currentWeapon.PlayReloadMidSound();
+                }
+            }
+        }
 
         if (GetInput(out NetworkInputData input))
         {
-            // CRITICAL FIX: Only process firing logic if we have input authority OR state authority
-            // Proxy clients (no input authority, no state authority) should not process this
-            if (!Object.HasInputAuthority && !Object.HasStateAuthority)
-            {
-                return;
-            }
-
+            // 2. Handle Aiming (State Authority)
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector3 weaponHoldPos = _currentWeapon.GetWeaponHoldPosition();
@@ -51,99 +84,104 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
+            // 3. RELOAD INPUT GATING
+            bool isReloading = !reloadTimer.ExpiredOrNotRunning(Runner);
+
+            // Manual Reload
+            if (input.buttons.IsSet(MyButtons.Reload) && !isReloading && RemainingAmmo < data.maxAmmo)
+            {
+                StartReload(data);
+                isReloading = true;
+            }
+
+            // 4. FIRING LOGIC
             bool firePressed = input.buttons.IsSet(MyButtons.Fire);
-            WeaponData data = _currentWeapon.GetWeaponData();
 
-            if (data != null)
+            if (firePressed && !isReloading && fireRateTimer.ExpiredOrNotRunning(Runner))
             {
-                bool shouldFire = false;
-
-                if (data.isAutomatic)
+                if (RemainingAmmo > 0)
                 {
-                    // For automatic weapons, check fire rate timer
-                    bool canFire = Object.HasStateAuthority
-                        ? fireRateTimer.ExpiredOrNotRunning(Runner)
-                        : _clientFireRateTimer.ExpiredOrNotRunning(Runner);
-
-                    shouldFire = firePressed && canFire;
-                }
-                else
-                {
-                    // For semi-automatic, only fire on button press (not hold)
-                    shouldFire = firePressed && !wasFirePressedLastFrame;
-                }
-
-                if (shouldFire)
-                {
-                    Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
-                    Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
-                    Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
-
-                    // Generate bullet ID for this shot
-                    int bulletId;
-                    if (Object.HasStateAuthority)
+                    bool canShootThisFrame = data.isAutomatic || !wasFirePressedLastFrame;
+                    if (canShootThisFrame)
                     {
-                        bulletId = nextBulletId;
-                        nextBulletId += data.bulletAmount; // Reserve IDs for all bullets in this shot
-                        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
-                        if (_playerController != null) _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
-
-                        // Increment counter to trigger muzzle flash on all clients
-                        muzzleFlashCounter++;
+                        ExecuteShoot(input, data);
                     }
-                    else
-                    {
-                        bulletId = _clientNextBulletId;
-                        _clientNextBulletId += data.bulletAmount;
-                        _clientFireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
-
-                        // Client prediction of muzzle flash
-                        TriggerMuzzleFlash();
-                    }
-
-                    Fire(baseAimDir, data, spawnPos, input.inputTick, bulletId);
+                }
+                else if (!isReloading)
+                {
+                    StartReload(data); // Auto-reload trigger
                 }
             }
 
-            if (Object.HasStateAuthority)
-            {
-                wasFirePressedLastFrame = firePressed;
-            }
+            wasFirePressedLastFrame = firePressed;
         }
+    }
+
+    private void StartReload(WeaponData data)
+    {
+        // Safety check: Don't restart if already active
+        if (!reloadTimer.ExpiredOrNotRunning(Runner)) return;
+
+        reloadTimer = TickTimer.CreateFromSeconds(Runner, data.reloadTimeSeconds);
+        _hasPlayedMidReloadSound = false;
+
+        // Play reload start sound for everyone
+        if (_currentWeapon != null)
+        {
+            _currentWeapon.PlayReloadStartSound();
+        }
+
+        Debug.Log($"<color=yellow>Reloading started for {data.reloadTimeSeconds}s...</color>");
+    }
+
+    private void ExecuteShoot(NetworkInputData input, WeaponData data)
+    {
+        Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
+        Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
+        Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
+
+        fireRateTimer = TickTimer.CreateFromSeconds(Runner, 1f / data.fireRate);
+
+        int bulletIdStart;
+
+        if (Object.HasStateAuthority)
+        {
+            bulletIdStart = nextBulletId;
+            nextBulletId += data.bulletAmount;
+            RemainingAmmo--;
+            // Sync ammo to weapon
+            _currentWeapon.SetCurrentAmmo(RemainingAmmo);
+            muzzleFlashCounter++; // This increments for all shooters
+
+            if (_playerController != null)
+                _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
+
+            // State authority always triggers muzzle flash locally
+            TriggerMuzzleFlash();
+        }
+        else
+        {
+            // Predicted client-side
+            bulletIdStart = nextBulletId;
+            nextBulletId += data.bulletAmount;
+            TriggerMuzzleFlash();
+        }
+
+        Fire(baseAimDir, data, spawnPos, input.inputTick, bulletIdStart);
     }
 
     public override void Render()
     {
-        // Check if muzzleFlashCounter changed
-        // Skip if we already predicted it (client with input authority)
-        bool shouldCheckCounter = !(Object.HasInputAuthority && !Object.HasStateAuthority);
-
-        if (shouldCheckCounter && muzzleFlashCounter != _lastMuzzleFlashCounter)
+        // Check for muzzle flash updates from other players (anyone we don't have input authority over)
+        if (!Object.HasInputAuthority && muzzleFlashCounter != _lastMuzzleFlashCounter)
         {
             _lastMuzzleFlashCounter = muzzleFlashCounter;
             TriggerMuzzleFlash();
         }
     }
 
-    private void TriggerMuzzleFlash()
-    {
-        if (_currentWeapon == null) return;
-
-        WeaponData data = _currentWeapon.GetWeaponData();
-        GameObject flashPrefab = data?.muzzleFlashPrefab ?? muzzleFlashPrefab; // Fallback to default
-
-        if (flashPrefab == null) return;
-
-        Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
-        Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
-        GameObject flash = Instantiate(flashPrefab, spawnPos, _currentWeapon.transform.rotation);
-        Destroy(flash, 1.0f);
-    }
-
     private void Fire(Vector2 direction, WeaponData data, Vector3 spawnPos, int seed, int startBulletId)
     {
-        Debug.Log($"[Fire] Using seed: {seed}, StartBulletId: {startBulletId}, HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}");
-
         for (int i = 0; i < data.bulletAmount; i++)
         {
             int bulletId = startBulletId + i;
@@ -152,18 +190,14 @@ public class WeaponAimController : NetworkBehaviour
             Vector2 spreadDir = CalculateSpreadDirection(direction, data.spreadAmount, data.maxSpreadDegrees);
             Quaternion spawnRotation = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            // Only create predicted bullets on the client with input authority
             if (Object.HasInputAuthority && !Object.HasStateAuthority && data.bulletVisualPrefab != null)
             {
                 GameObject predicted = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRotation);
                 var predBullet = predicted.GetComponent<PredictedBullet>();
                 if (predBullet != null)
-                {
                     predBullet.Initialize(spreadDir * data.bulletSpeed, data.bulletLifetime, bulletId);
-                }
             }
 
-            // Only spawn networked bullets on the server (state authority)
             if (Object.HasStateAuthority)
             {
                 Runner.Spawn(data.bulletPrefab, spawnPos, spawnRotation, Object.InputAuthority, (runner, obj) =>
@@ -183,26 +217,49 @@ public class WeaponAimController : NetworkBehaviour
         return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
 
+    private void TriggerMuzzleFlash()
+    {
+        if (_currentWeapon == null) return;
+        WeaponData data = _currentWeapon.GetWeaponData();
+        GameObject flashPrefab = data?.muzzleFlashPrefab ?? muzzleFlashPrefab;
+        if (flashPrefab == null) return;
+
+        Transform fireOrigin = _currentWeapon.transform.Find("FireOrigin");
+        Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
+        GameObject flash = Instantiate(flashPrefab, spawnPos, _currentWeapon.transform.rotation);
+        Destroy(flash, 1.0f);
+    }
+
     public void SetCurrentWeapon(WeaponPickup weapon)
     {
         if (Object.HasStateAuthority)
         {
             _currentWeapon = weapon;
             CurrentWeaponId = weapon != null ? weapon.Object.Id : default;
+            // Load ammo from weapon instead of resetting to max
+            RemainingAmmo = weapon != null ? weapon.GetCurrentAmmo() : 0;
             wasFirePressedLastFrame = false;
         }
-        _clientFireRateTimer = TickTimer.None;
+        fireRateTimer = TickTimer.None;
+        reloadTimer = TickTimer.None;
     }
 
     public void ClearCurrentWeapon()
     {
         if (Object.HasStateAuthority)
         {
+            // Save current ammo to weapon before clearing
+            if (_currentWeapon != null)
+            {
+                _currentWeapon.SetCurrentAmmo(RemainingAmmo);
+            }
+
             _currentWeapon = null;
             CurrentWeaponId = default;
-            wasFirePressedLastFrame = false;
+            RemainingAmmo = 0;
         }
-        _clientFireRateTimer = TickTimer.None;
+        fireRateTimer = TickTimer.None;
+        reloadTimer = TickTimer.None;
     }
 
     private void ResolveWeaponReference()

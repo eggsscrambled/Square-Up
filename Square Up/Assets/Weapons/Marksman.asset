@@ -16,6 +16,8 @@ MonoBehaviour:
   fireRate: 0.5
   bulletSpeed: 200
   bulletAmount: 1
+  reloadTimeSeconds: 3
+  maxAmmo: 6
   spreadAmount: 0
   maxSpreadDegrees: 0
   bulletPrefab: {fileID: 7754371058564287661, guid: 65d648e67329f354281db995e0146c46, type: 3}

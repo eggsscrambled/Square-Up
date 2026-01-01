@@ -7,6 +7,8 @@ public class WeaponData : ScriptableObject
     public float fireRate = 1f;
     public float bulletSpeed = 1f;
     public int bulletAmount = 1;
+    public float reloadTimeSeconds = 2f;
+    public int maxAmmo = 12;
     public float spreadAmount = 1;
     public float maxSpreadDegrees = 45;
     public GameObject bulletPrefab;

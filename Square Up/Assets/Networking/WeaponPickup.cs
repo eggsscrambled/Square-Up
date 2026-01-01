@@ -21,10 +21,17 @@ public class WeaponPickup : NetworkBehaviour
     [SerializeField] private bool flipSpriteWhenAimingLeft = true;
     [SerializeField] private bool flipShouldFlip = false;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip reloadStartSound;
+    [SerializeField] private AudioClip reloadMidSound;
+    [SerializeField] private AudioClip reloadEndSound;
+
     [Networked] private NetworkBool IsPickedUp { get; set; }
     [Networked] private PlayerRef Owner { get; set; }
     [Networked] private Vector2 AimDirection { get; set; }
     [Networked] private NetworkId OwnerId { get; set; }
+    [Networked] public int CurrentAmmo { get; set; }
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -57,6 +64,8 @@ public class WeaponPickup : NetworkBehaviour
         {
             IsPickedUp = false;
             Owner = PlayerRef.None;
+            // Initialize with full ammo when weapon first spawns
+            CurrentAmmo = weaponData != null ? weaponData.maxAmmo : 0;
         }
     }
 
@@ -213,4 +222,30 @@ public class WeaponPickup : NetworkBehaviour
     public bool GetIsPickedUp() => IsPickedUp;
     public WeaponData GetWeaponData() => weaponData;
     public Vector3 GetWeaponHoldPosition() => ownerTransform != null ? ownerTransform.position + Vector3.up * verticalOffset : transform.position;
+    public int GetCurrentAmmo() => CurrentAmmo;
+    public void SetCurrentAmmo(int ammo) => CurrentAmmo = ammo;
+
+    public void PlayReloadStartSound()
+    {
+        if (reloadStartSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(reloadStartSound);
+        }
+    }
+
+    public void PlayReloadMidSound()
+    {
+        if (reloadMidSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(reloadMidSound);
+        }
+    }
+
+    public void PlayReloadEndSound()
+    {
+        if (reloadEndSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(reloadEndSound);
+        }
+    }
 }

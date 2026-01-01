@@ -19,6 +19,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private bool _pickupAccumulator;
     private bool _dashAccumulator;
     private bool _fireAccumulator;
+    private bool _reloadAccumulator; // Add this
 
     async void Start()
     {
@@ -39,6 +40,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         if (Input.GetButton("Fire1")) _fireAccumulator = true;
         if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
+        if (Input.GetKeyDown(KeyCode.R)) _reloadAccumulator = true; // Add this
     }
 
     private void RefreshSpawnPoints()
@@ -74,35 +76,48 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         var inputData = new NetworkInputData();
 
+        // 1. Movement Input
         inputData.movementInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
+        // 2. Mouse and Aiming Logic
         if (Camera.main != null)
         {
+            // Get mouse position in world space
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
             inputData.mouseWorldPosition = mousePos;
 
+            // Find the local player to calculate aim direction from the player's center to the mouse
+            // We look for the PlayerData script that has Input Authority (the local client's player)
             PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
                 .FirstOrDefault(p => p.Object != null && p.Object.HasInputAuthority);
 
             if (localPlayer != null)
+            {
                 inputData.aimDirection = ((Vector2)mousePos - (Vector2)localPlayer.transform.position).normalized;
+            }
         }
 
-        // Map accumulators to NetworkButtons
+        // 3. Map Accumulators to NetworkButtons
+        // Using Set() ensures the button bit is flipped to 'true' if the accumulator was tripped in Update()
         inputData.buttons.Set(MyButtons.Fire, _fireAccumulator);
         inputData.buttons.Set(MyButtons.Pickup, _pickupAccumulator);
         inputData.buttons.Set(MyButtons.Dash, _dashAccumulator);
+        inputData.buttons.Set(MyButtons.Reload, _reloadAccumulator);
 
-        // Store the current tick for deterministic randomness
+        // 4. Tick Synchronization
+        // Storing the current tick helps with deterministic logic like seed-based spread
         inputData.inputTick = runner.Tick;
 
+        // 5. Send to Fusion Simulation
         input.Set(inputData);
 
-        // Reset accumulators after passing them to the simulation
+        // 6. Reset Accumulators
+        // IMPORTANT: We clear these so the same button press doesn't "ghost" into the next input call
         _fireAccumulator = false;
         _pickupAccumulator = false;
         _dashAccumulator = false;
+        _reloadAccumulator = false;
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
