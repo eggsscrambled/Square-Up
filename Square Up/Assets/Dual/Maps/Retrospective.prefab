@@ -233,9 +233,9 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 0
+  SortKey: 2778491023
   ObjectInterest: 1
-  Flags: 262144
+  Flags: 262145
   NestedObjects: []
   NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
@@ -10304,6 +10304,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3511374892230146869}
   - component: {fileID: 2499204975678833328}
+  - component: {fileID: -9088879471360775096}
+  - component: {fileID: 4027418566743387378}
   m_Layer: 0
   m_Name: Retrospective
   m_TagString: Untagged
@@ -10343,6 +10345,43 @@ Grid:
   m_CellGap: {x: 0, y: 0, z: 0}
   m_CellLayout: 0
   m_CellSwizzle: 0
+--- !u!114 &-9088879471360775096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5166821595716459216}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 24196395
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects:
+  - {fileID: 5835809821801444126}
+  NetworkedBehaviours:
+  - {fileID: 4027418566743387378}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &4027418566743387378
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5166821595716459216}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
 --- !u!1 &6684066356257496632
 GameObject:
   m_ObjectHideFlags: 0

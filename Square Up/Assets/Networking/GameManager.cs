@@ -23,6 +23,9 @@ public class GameManager : NetworkBehaviour
     [Header("Spawn Settings")]
     [SerializeField] private float spawnHeight = 10f;
 
+    [Header("Map Settings")]
+    [SerializeField] private NetworkPrefabRef[] availableMaps;
+
     [Header("Weapons")]
     [SerializeField] private WeaponData[] availableWeapons;
     [SerializeField] private WeaponPickup[] weaponPrefabs;
@@ -33,6 +36,7 @@ public class GameManager : NetworkBehaviour
     [Networked] private GameState CurrentState { get; set; }
     [Networked] private TickTimer RoundTimer { get; set; }
     [Networked] private int LastRoundWinnerIndex { get; set; }
+    [Networked] private NetworkObject CurrentMap { get; set; }
 
     [Networked, Capacity(2)]
     private NetworkArray<PlayerRef> PlayerRefs => default;
@@ -43,9 +47,21 @@ public class GameManager : NetworkBehaviour
     private enum GameState { WaitingForPlayers, RoundStarting, RoundActive, RoundEnding, MatchOver }
 
     private GameObject[] spawnPoints;
+    private Transform worldOrigin;
 
     public override void Spawned()
     {
+        // Find the world origin map spawn point
+        GameObject worldOriginObj = GameObject.Find("worldorigin");
+        if (worldOriginObj != null)
+        {
+            worldOrigin = worldOriginObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning("No 'worldorigin' GameObject found! Maps will spawn at (0,0,0)");
+        }
+
         // Cache all spawn points by tag
         spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoints");
 
@@ -189,12 +205,46 @@ public class GameManager : NetworkBehaviour
         CurrentState = GameState.RoundStarting;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundStartDelay);
 
+        // Despawn old map and spawn new random map
+        SpawnRandomMap();
+
         PositionPlayersAtSpawns();
         for (int i = 0; i < 2; i++)
         {
             PlayerData data = GetPlayerData(i);
             if (data != null) data.Respawn();
         }
+    }
+
+    private void SpawnRandomMap()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        // Despawn current map if it exists
+        if (CurrentMap != null)
+        {
+            Runner.Despawn(CurrentMap);
+            CurrentMap = null;
+        }
+
+        // Check if we have maps to spawn
+        if (availableMaps == null || availableMaps.Length == 0)
+        {
+            Debug.LogWarning("No maps available to spawn!");
+            return;
+        }
+
+        // Select random map
+        int randomIndex = Random.Range(0, availableMaps.Length);
+        NetworkPrefabRef selectedMap = availableMaps[randomIndex];
+
+        // Determine spawn position (world origin or 0,0,0)
+        Vector3 spawnPosition = worldOrigin != null ? worldOrigin.position : Vector3.zero;
+
+        // Spawn the map
+        CurrentMap = Runner.Spawn(selectedMap, spawnPosition, Quaternion.identity);
+
+        Debug.Log($"Spawned map {randomIndex} at {spawnPosition}");
     }
 
     private void StartRound() => CurrentState = GameState.RoundActive;
