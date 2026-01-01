@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7137565347488442640}
   - component: {fileID: 2043176495166827646}
   - component: {fileID: 1659567634371241550}
+  - component: {fileID: 4298782684005755105}
   m_Layer: 0
   m_Name: Player DMG
   m_TagString: Untagged
@@ -4959,3 +4960,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RandomizePitch
   min: 0.8
   max: 1.2
+--- !u!114 &4298782684005755105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8002429645054038217}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa42c1813cd98f64099900272dfc45f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GarbageCleanup
+  lifetime: 5
