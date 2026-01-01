@@ -41,6 +41,7 @@ public class NetworkedProjectile : NetworkBehaviour
         {
             PredictedBulletManager.Instance.OnNetworkedBulletSpawned(BulletId);
             _hasNotifiedPrediction = true;
+            Debug.Log($"<color=cyan>Networked bullet {BulletId} spawned - cleaning up predicted</color>");
         }
     }
 

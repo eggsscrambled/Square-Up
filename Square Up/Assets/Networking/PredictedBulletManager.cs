@@ -55,9 +55,10 @@ public class PredictedBulletManager : MonoBehaviour
     {
         if (predictedBullets.TryGetValue(bulletId, out PredictedBullet bullet))
         {
-            if (bullet != null)
+            if (bullet != null && bullet.gameObject != null)
             {
                 Destroy(bullet.gameObject);
+                Debug.Log($"<color=yellow>Cleaned up predicted bullet {bulletId}</color>");
             }
             predictedBullets.Remove(bulletId);
         }

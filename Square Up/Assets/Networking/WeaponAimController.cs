@@ -12,6 +12,8 @@ public class WeaponAimController : NetworkBehaviour
     [Networked] private NetworkBool wasFirePressedLastFrame { get; set; }
     [Networked] private int nextBulletId { get; set; }
     [Networked] private int muzzleFlashCounter { get; set; }
+    [Networked] private NetworkBool hasPlayedReloadStartSound { get; set; }
+    [Networked] private NetworkBool hasPlayedReloadMidSound { get; set; }
 
     [Header("Visuals")]
     [SerializeField] private GameObject muzzleFlashPrefab;
@@ -20,7 +22,6 @@ public class WeaponAimController : NetworkBehaviour
     private WeaponPickup _currentWeapon;
     private PlayerData _playerData;
     private PlayerController _playerController;
-    private bool _hasPlayedMidReloadSound = false;
 
     public WeaponPickup CurrentWeapon => _currentWeapon;
 
@@ -46,10 +47,11 @@ public class WeaponAimController : NetworkBehaviour
             // Sync ammo back to weapon
             _currentWeapon.SetCurrentAmmo(RemainingAmmo);
             reloadTimer = TickTimer.None;
-            _hasPlayedMidReloadSound = false;
+            hasPlayedReloadStartSound = false;
+            hasPlayedReloadMidSound = false;
 
-            // Play reload end sound
-            if (_currentWeapon != null)
+            // Play reload end sound only in forward simulation
+            if (_currentWeapon != null && Runner.IsForward)
             {
                 _currentWeapon.PlayReloadEndSound();
             }
@@ -57,8 +59,8 @@ public class WeaponAimController : NetworkBehaviour
             Debug.Log($"<color=green>SERVER: Reload Complete. Ammo: {RemainingAmmo}</color>");
         }
 
-        // Check for mid-reload sound (at 50% progress)
-        if (Object.HasStateAuthority && !reloadTimer.ExpiredOrNotRunning(Runner) && !_hasPlayedMidReloadSound)
+        // Check for mid-reload sound (at 50% progress) - only in forward simulation
+        if (Object.HasStateAuthority && !reloadTimer.ExpiredOrNotRunning(Runner) && !hasPlayedReloadMidSound && Runner.IsForward)
         {
             float remainingTime = reloadTimer.RemainingTime(Runner) ?? 0f;
             float elapsedTime = data.reloadTimeSeconds - remainingTime;
@@ -66,7 +68,7 @@ public class WeaponAimController : NetworkBehaviour
 
             if (progress >= 0.5f)
             {
-                _hasPlayedMidReloadSound = true;
+                hasPlayedReloadMidSound = true;
                 if (_currentWeapon != null)
                 {
                     _currentWeapon.PlayReloadMidSound();
@@ -123,11 +125,13 @@ public class WeaponAimController : NetworkBehaviour
         if (!reloadTimer.ExpiredOrNotRunning(Runner)) return;
 
         reloadTimer = TickTimer.CreateFromSeconds(Runner, data.reloadTimeSeconds);
-        _hasPlayedMidReloadSound = false;
+        hasPlayedReloadStartSound = false;
+        hasPlayedReloadMidSound = false;
 
-        // Play reload start sound for everyone
-        if (_currentWeapon != null)
+        // Play reload start sound ONLY in forward simulation
+        if (_currentWeapon != null && Runner.IsForward)
         {
+            hasPlayedReloadStartSound = true;
             _currentWeapon.PlayReloadStartSound();
         }
 
