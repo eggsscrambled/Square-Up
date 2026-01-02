@@ -2057,6 +2057,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1984096035
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1984096038}
+  - component: {fileID: 1984096037}
+  - component: {fileID: 1984096036}
+  m_Layer: 0
+  m_Name: GlobalFXManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1984096036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1984096035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adbdcd0b91382e845970f7f0d87b1aff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalFXManager
+  bloodPrefab: {fileID: 8002429645054038217, guid: a4d1423c24a1e4b48a04bbe181bf8cff, type: 3}
+  environmentHitPrefab: {fileID: 4950077938850311111, guid: 2d7bad22c0c90ee4389f7cd43bcbfe0b, type: 3}
+  fizzlePrefab: {fileID: 8012426408988045600, guid: 84363b664c72f4d43b7d6889ccd8b004, type: 3}
+  defaultMuzzleFlashPrefab: {fileID: 3317814402342211334, guid: bdddfd04d8da115489460b3575282724, type: 3}
+--- !u!114 &1984096037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1984096035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1046527915
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 1984096036}
+  ForceRemoteRenderTimeframe: 0
+--- !u!4 &1984096038
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1984096035}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.22188, y: -9.79355, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2027151674
 GameObject:
   m_ObjectHideFlags: 0
@@ -3970,3 +4038,4 @@ SceneRoots:
   - {fileID: 2135050691}
   - {fileID: 1984043523}
   - {fileID: 1442192216}
+  - {fileID: 1984096038}

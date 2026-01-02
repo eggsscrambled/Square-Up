@@ -7,6 +7,8 @@ using TMPro;
 
 public class GameManager : NetworkBehaviour
 {
+    public static GameManager Instance { get; private set; } // ADD THIS LINE
+
     [Header("Game Settings")]
     [SerializeField] private int winsToWinMatch = 7;
     [SerializeField] private float roundStartDelay = 3f;
@@ -51,6 +53,8 @@ public class GameManager : NetworkBehaviour
 
     public override void Spawned()
     {
+        Instance = this; // ADD THIS LINE
+
         // Find the world origin map spawn point
         GameObject worldOriginObj = GameObject.Find("worldorigin");
         if (worldOriginObj != null)
