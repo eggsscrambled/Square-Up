@@ -13,6 +13,8 @@ public class PlayerData : NetworkBehaviour
     [Networked] public NetworkBool IsHealing { get; set; }
     [Networked] public TickTimer HealWindupTimer { get; set; } // The delay timer
 
+    public GameObject fovMaskObject;
+
     [Header("Healing Settings")]
     [SerializeField] private float healthPerSecond = 15f;
     [SerializeField] private float maxHealth = 100f;
@@ -47,6 +49,11 @@ public class PlayerData : NetworkBehaviour
         }
         TryAssignTagAndLayer();
         if (hitCollision != null) hitCollision.SetActive(!Object.HasInputAuthority);
+
+        if (!Object.HasInputAuthority)
+        {
+            fovMaskObject.SetActive(false);
+        }
     }
 
     public override void FixedUpdateNetwork()

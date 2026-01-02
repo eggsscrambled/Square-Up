@@ -7,7 +7,7 @@ using TMPro;
 
 public class GameManager : NetworkBehaviour
 {
-    public static GameManager Instance { get; private set; } // ADD THIS LINE
+    public static GameManager Instance { get; private set; }
 
     [Header("Game Settings")]
     [SerializeField] private int winsToWinMatch = 7;
@@ -48,26 +48,17 @@ public class GameManager : NetworkBehaviour
 
     private enum GameState { WaitingForPlayers, RoundStarting, RoundActive, RoundEnding, MatchOver }
 
-    private GameObject[] spawnPoints;
     private Transform worldOrigin;
 
     public override void Spawned()
     {
-        Instance = this; // ADD THIS LINE
+        Instance = this;
 
-        // Find the world origin map spawn point
         GameObject worldOriginObj = GameObject.Find("worldorigin");
         if (worldOriginObj != null)
         {
             worldOrigin = worldOriginObj.transform;
         }
-        else
-        {
-            Debug.LogWarning("No 'worldorigin' GameObject found! Maps will spawn at (0,0,0)");
-        }
-
-        // Cache all spawn points by tag
-        spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoints");
 
         if (Object.HasStateAuthority)
         {
@@ -90,14 +81,21 @@ public class GameManager : NetworkBehaviour
             switch (CurrentState)
             {
                 case GameState.RoundStarting:
+                    // Continuously enforce player positions during the countdown.
+                    // This solves the first-round race condition.
+                    PositionPlayersAtSpawns();
+
                     if (RoundTimer.ExpiredOrNotRunning(Runner)) StartRound();
                     break;
+
                 case GameState.RoundActive:
                     CheckForRoundEnd();
                     break;
+
                 case GameState.RoundEnding:
                     if (RoundTimer.ExpiredOrNotRunning(Runner)) PrepareNextRound();
                     break;
+
                 case GameState.MatchOver:
                     if (RoundTimer.ExpiredOrNotRunning(Runner)) ReturnToMenu();
                     break;
@@ -194,9 +192,6 @@ public class GameManager : NetworkBehaviour
         GameStarted = true;
         for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
 
-        // Teleport players to spawn points when game starts
-        PositionPlayersAtSpawns();
-
         PrepareNextRound();
     }
 
@@ -209,10 +204,9 @@ public class GameManager : NetworkBehaviour
         CurrentState = GameState.RoundStarting;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundStartDelay);
 
-        // Despawn old map and spawn new random map
         SpawnRandomMap();
 
-        PositionPlayersAtSpawns();
+        // Trigger an initial respawn to reset health/dead flags
         for (int i = 0; i < 2; i++)
         {
             PlayerData data = GetPlayerData(i);
@@ -224,31 +218,19 @@ public class GameManager : NetworkBehaviour
     {
         if (!Object.HasStateAuthority) return;
 
-        // Despawn current map if it exists
         if (CurrentMap != null)
         {
             Runner.Despawn(CurrentMap);
             CurrentMap = null;
         }
 
-        // Check if we have maps to spawn
-        if (availableMaps == null || availableMaps.Length == 0)
-        {
-            Debug.LogWarning("No maps available to spawn!");
-            return;
-        }
+        if (availableMaps == null || availableMaps.Length == 0) return;
 
-        // Select random map
         int randomIndex = Random.Range(0, availableMaps.Length);
         NetworkPrefabRef selectedMap = availableMaps[randomIndex];
-
-        // Determine spawn position (world origin or 0,0,0)
         Vector3 spawnPosition = worldOrigin != null ? worldOrigin.position : Vector3.zero;
 
-        // Spawn the map
         CurrentMap = Runner.Spawn(selectedMap, spawnPosition, Quaternion.identity);
-
-        Debug.Log($"Spawned map {randomIndex} at {spawnPosition}");
     }
 
     private void StartRound() => CurrentState = GameState.RoundActive;
@@ -298,19 +280,35 @@ public class GameManager : NetworkBehaviour
 
     private void PositionPlayersAtSpawns()
     {
-        if (spawnPoints == null || spawnPoints.Length < 2)
+        if (CurrentMap == null) return;
+
+        // Search inside the spawned map for objects tagged "SpawnPoints"
+        Transform[] allChildren = CurrentMap.GetComponentsInChildren<Transform>(true);
+        List<Transform> spawnPoints = new List<Transform>();
+
+        foreach (Transform child in allChildren)
         {
-            Debug.LogWarning("Not enough spawn points tagged 'SpawnPoints'!");
-            return;
+            if (child.CompareTag("SpawnPoints"))
+            {
+                spawnPoints.Add(child);
+            }
         }
+
+        if (spawnPoints.Count < 2) return;
 
         for (int i = 0; i < 2; i++)
         {
             PlayerData p = GetPlayerData(i);
             if (p != null)
             {
-                int spawnIndex = i % spawnPoints.Length;
-                p.transform.position = spawnPoints[spawnIndex].transform.position + Vector3.up * spawnHeight;
+                int spawnIndex = i % spawnPoints.Count;
+                Vector3 targetPos = spawnPoints[spawnIndex].position + Vector3.up * spawnHeight;
+
+                // Teleport the transform
+                p.transform.position = targetPos;
+
+                // If the player is dead, respawn them at this location
+                if (p.Dead) p.Respawn();
             }
         }
     }
@@ -319,42 +317,25 @@ public class GameManager : NetworkBehaviour
     {
         if (!Object.HasStateAuthority) return;
 
-        // Tell all clients to return to menu
         RPC_ReturnToMenu();
-
-        // Small delay to ensure RPC is sent
         await System.Threading.Tasks.Task.Delay(100);
-
-        // Shutdown the runner
         await Runner.Shutdown();
-
-        // Load scene index 0 (menu scene)
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ReturnToMenu()
     {
-        // This runs on all clients including host
         StartCoroutine(ReturnToMenuCoroutine());
     }
 
     private System.Collections.IEnumerator ReturnToMenuCoroutine()
     {
-        // Small delay to let RPC finish
         yield return new WaitForSeconds(0.1f);
-
-        // Shutdown runner (safe to call on both host and client)
-        if (Runner != null)
-        {
-            Runner.Shutdown();
-        }
-
-        // Load menu scene
+        if (Runner != null) Runner.Shutdown();
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
-    // --- Weapon Helpers (FIXED) ---
     public void SpawnDroppedWeapon(WeaponData weaponData, Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
@@ -372,10 +353,7 @@ public class GameManager : NetworkBehaviour
     {
         if (index <= 0 || availableWeapons == null) return null;
         int arrayIdx = index - 1;
-
-        if (arrayIdx >= 0 && arrayIdx < availableWeapons.Length)
-            return availableWeapons[arrayIdx];
-
+        if (arrayIdx >= 0 && arrayIdx < availableWeapons.Length) return availableWeapons[arrayIdx];
         return null;
     }
 
