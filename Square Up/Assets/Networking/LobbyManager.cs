@@ -105,6 +105,9 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         inputData.buttons.Set(MyButtons.Dash, _dashAccumulator);
         inputData.buttons.Set(MyButtons.Reload, _reloadAccumulator);
 
+        // Inside OnInput
+        inputData.buttons.Set(MyButtons.Heal, Input.GetKey(KeyCode.Q));
+
         // 4. Tick Synchronization
         // Storing the current tick helps with deterministic logic like seed-based spread
         inputData.inputTick = runner.Tick;

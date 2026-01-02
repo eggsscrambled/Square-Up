@@ -4,8 +4,6 @@ using Fusion;
 public class WeaponAimController : NetworkBehaviour
 {
     [Networked] public NetworkId CurrentWeaponId { get; set; }
-
-    [Header("Networked State")]
     [Networked] public TickTimer fireRateTimer { get; set; }
     [Networked] public TickTimer reloadTimer { get; set; }
     [Networked] public int RemainingAmmo { get; set; }
@@ -16,7 +14,6 @@ public class WeaponAimController : NetworkBehaviour
     private PlayerData _playerData;
     private PlayerController _playerController;
 
-    // --- RESTORED FOR UI AND PICKUP SCRIPTS ---
     public WeaponPickup CurrentWeapon => _currentWeapon;
 
     public override void Spawned()
@@ -28,42 +25,100 @@ public class WeaponAimController : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         ResolveWeaponReference();
-        if (_currentWeapon == null || _playerData == null || _playerData.Dead) return;
 
-        WeaponData data = _currentWeapon.GetWeaponData();
-        if (data == null) return;
-
-        if (Object.HasStateAuthority && reloadTimer.Expired(Runner))
-        {
-            RemainingAmmo = data.maxAmmo;
-            _currentWeapon.SetCurrentAmmo(RemainingAmmo);
-            reloadTimer = TickTimer.None;
-            if (Runner.IsForward) _currentWeapon.PlayReloadEndSound();
-        }
+        // 1. Basic Validation
+        if (_playerData == null || _playerData.Dead) return;
 
         if (GetInput(out NetworkInputData input))
         {
+            // --- HEALING & WIND-UP LOGIC ---
+            bool healButtonPressed = input.buttons.IsSet(MyButtons.Heal);
+            bool needsHealing = _playerData.Health < 100f; // Assuming 100 is Max Health
+
+            // Check if we should be in the healing state
+            if (healButtonPressed && needsHealing)
+            {
+                // If this is the very first frame we pressed Q, start the wind-up timer
+                if (!_playerData.IsHealing)
+                {
+                    _playerData.HealWindupTimer = TickTimer.CreateFromSeconds(Runner, 0.5f);
+                }
+                _playerData.IsHealing = true;
+            }
+            else
+            {
+                // If button released or health full, reset everything
+                _playerData.IsHealing = false;
+                _playerData.HealWindupTimer = TickTimer.None;
+            }
+
+            // --- WEAPON BLOCKING ---
+            // If we are healing (even in wind-up), we cannot shoot or reload.
+            bool isHealingCommitment = _playerData.IsHealing;
+
+            if (_currentWeapon == null) return;
+            WeaponData data = _currentWeapon.GetWeaponData();
+            if (data == null) return;
+
+            // --- RELOAD LOGIC ---
+            if (isHealingCommitment)
+            {
+                // Cancel active reload if we start healing
+                reloadTimer = TickTimer.None;
+            }
+            else if (Object.HasStateAuthority && reloadTimer.Expired(Runner))
+            {
+                RemainingAmmo = data.maxAmmo;
+                _currentWeapon.SetCurrentAmmo(RemainingAmmo);
+                reloadTimer = TickTimer.None;
+                if (Runner.IsForward) _currentWeapon.PlayReloadEndSound();
+            }
+
+            // --- AIMING LOGIC ---
             if (Object.HasStateAuthority && input.aimDirection.magnitude > 0.1f)
             {
                 Vector2 aimFromWeapon = (input.mouseWorldPosition - (Vector2)_currentWeapon.GetWeaponHoldPosition()).normalized;
                 _currentWeapon.UpdateAimDirection(aimFromWeapon);
             }
 
+            // --- SHOOTING LOGIC ---
             bool isReloading = !reloadTimer.ExpiredOrNotRunning(Runner);
             bool firePressed = input.buttons.IsSet(MyButtons.Fire);
 
-            if (firePressed && !isReloading && fireRateTimer.ExpiredOrNotRunning(Runner))
+            // Conditions to shoot: Fire held, NOT reloading, NOT healing, and Rate of Fire timer is ready
+            if (firePressed && !isReloading && !isHealingCommitment && fireRateTimer.ExpiredOrNotRunning(Runner))
             {
                 if (RemainingAmmo > 0)
                 {
+                    // Handle Automatic vs Semi-Auto
                     if (data.isAutomatic || !wasFirePressedLastFrame)
+                    {
                         ExecuteShoot(input, data);
+                    }
                 }
                 else if (Object.HasStateAuthority)
+                {
+                    // Auto-reload if empty
                     StartReload(data);
+                }
             }
+
+            // Manual Reload Input (Blocked by healing)
+            if (input.buttons.IsSet(MyButtons.Reload) && !isHealingCommitment && !isReloading && RemainingAmmo < data.maxAmmo)
+            {
+                if (Object.HasStateAuthority) StartReload(data);
+            }
+
             wasFirePressedLastFrame = firePressed;
         }
+    }
+
+    private void StartReload(WeaponData data)
+    {
+        if (_playerData.IsHealing) return; // Cannot start reload while healing
+        if (!reloadTimer.ExpiredOrNotRunning(Runner)) return;
+        reloadTimer = TickTimer.CreateFromSeconds(Runner, data.reloadTimeSeconds);
+        if (Runner.IsForward) _currentWeapon.PlayReloadStartSound();
     }
 
     private void ExecuteShoot(NetworkInputData input, WeaponData data)
@@ -152,13 +207,6 @@ public class WeaponAimController : NetworkBehaviour
                 _currentWeapon = weaponObj.GetComponent<WeaponPickup>();
         }
         else if (CurrentWeaponId == default) _currentWeapon = null;
-    }
-
-    private void StartReload(WeaponData data)
-    {
-        if (!reloadTimer.ExpiredOrNotRunning(Runner)) return;
-        reloadTimer = TickTimer.CreateFromSeconds(Runner, data.reloadTimeSeconds);
-        if (Runner.IsForward) _currentWeapon.PlayReloadStartSound();
     }
 
     private Vector2 CalculateSpreadDirection(Vector2 baseDir, float spread, float maxDegrees)

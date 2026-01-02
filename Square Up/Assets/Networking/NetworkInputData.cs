@@ -7,7 +7,8 @@ public enum MyButtons
     Fire = 0,
     Pickup = 1,
     Dash = 2,
-    Reload = 3 // Add this
+    Reload = 3,
+    Heal = 4 // Add this
 }
 
 public struct NetworkInputData : INetworkInput

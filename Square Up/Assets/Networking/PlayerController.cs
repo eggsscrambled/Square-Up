@@ -8,16 +8,16 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float acceleration = 60f;
     [SerializeField] private float friction = 40f;
+    [SerializeField] private float healingSpeedMultiplier = 0.35f; // SLOW DOWN
 
     [Header("Dash")]
     [SerializeField] private bool enableDash = false;
-    [SerializeField] private float dashSpeedMultiplier = 2.5f; // Multiplier for move speed during dash
+    [SerializeField] private float dashSpeedMultiplier = 2.5f;
     [SerializeField] private float dashDuration = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
     [Header("Recoil")]
     [SerializeField] private float recoilDecaySpeed = 10f;
-    [SerializeField] private float collisionRadius = 0.5f;
 
     private Rigidbody2D _rb;
     private PlayerData _playerData;
@@ -51,8 +51,14 @@ public class PlayerController : NetworkBehaviour
             // Calculate current effective move speed
             float currentMoveSpeed = isDashing ? moveSpeed * dashSpeedMultiplier : moveSpeed;
 
-            // Check for dash input
-            if (enableDash &&
+            // --- HEALING SLOWDOWN ---
+            if (_playerData.IsHealing)
+            {
+                currentMoveSpeed *= healingSpeedMultiplier;
+            }
+
+            // Check for dash input (Only dash if NOT healing)
+            if (enableDash && !_playerData.IsHealing &&
                 input.buttons.IsSet(MyButtons.Dash) &&
                 DashCooldownTimer.ExpiredOrNotRunning(Runner) &&
                 input.movementInput.magnitude > 0.1f &&
@@ -62,12 +68,10 @@ public class PlayerController : NetworkBehaviour
                 DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
             }
 
-            // Apply movement with appropriate speed
             Vector2 targetVelocity = input.movementInput * currentMoveSpeed;
 
             if (input.movementInput.magnitude > 0.01f)
             {
-                // When dashing, use higher acceleration for more responsive feel
                 float currentAcceleration = isDashing ? acceleration * 2f : acceleration;
                 currentVelocity = Vector2.MoveTowards(currentVelocity, targetVelocity, currentAcceleration * Runner.DeltaTime);
             }
@@ -76,10 +80,7 @@ public class PlayerController : NetworkBehaviour
                 currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, friction * Runner.DeltaTime);
             }
 
-            // Apply recoil decay
             RecoilVelocity = Vector2.Lerp(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
-
-            // Update networked velocity and apply to rigidbody
             Velocity = currentVelocity;
             _rb.linearVelocity = Velocity + RecoilVelocity;
         }
