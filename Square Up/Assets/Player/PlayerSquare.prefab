@@ -846,7 +846,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   fov: 360
-  viewDistance: 20
+  viewDistance: 100
   rayCount: 100
 --- !u!1 &7440366643607035886
 GameObject:
