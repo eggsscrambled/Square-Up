@@ -847,7 +847,7 @@ MonoBehaviour:
     m_Bits: 64
   fov: 360
   viewDistance: 100
-  rayCount: 100
+  rayCount: 670
 --- !u!1 &7440366643607035886
 GameObject:
   m_ObjectHideFlags: 0
