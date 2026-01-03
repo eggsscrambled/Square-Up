@@ -218,7 +218,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 5247842920059344856}
-  Particles: {fileID: 8407640998777172792}
+  particles: {fileID: 0}
   source: {fileID: 1229507223841630264}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!114 &5835809821801444126
@@ -237,7 +237,8 @@ MonoBehaviour:
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
-  NetworkedBehaviours: []
+  NetworkedBehaviours:
+  - {fileID: 6681390662741223688}
   ForceRemoteRenderTimeframe: 0
 --- !u!82 &1229507223841630264
 AudioSource:
@@ -5358,7 +5359,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 8621482997753751078}
-  Particles: {fileID: 200334233396009810}
+  particles: {fileID: 0}
   source: {fileID: 1338998152883944893}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &1338998152883944893
@@ -10364,6 +10365,7 @@ MonoBehaviour:
   - {fileID: 5835809821801444126}
   NetworkedBehaviours:
   - {fileID: 4027418566743387378}
+  - {fileID: 2986824624556395029}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &4027418566743387378
 MonoBehaviour:

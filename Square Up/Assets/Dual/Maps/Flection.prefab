@@ -9821,6 +9821,7 @@ MonoBehaviour:
   - {fileID: 2628155130145825243}
   NetworkedBehaviours:
   - {fileID: 4149457408113661609}
+  - {fileID: 8018340001433181676}
   ForceRemoteRenderTimeframe: 0
 --- !u!1 &5837817985926779232
 GameObject:
@@ -9977,7 +9978,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 7083227929150186644}
-  Particles: {fileID: 2884002942259312914}
+  particles: {fileID: 0}
   source: {fileID: 3523952524294542325}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &3523952524294542325
@@ -23960,7 +23961,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 1887666054257388709}
-  Particles: {fileID: 1317972984675123957}
+  particles: {fileID: 0}
   source: {fileID: 2107194568720184056}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!114 &2628155130145825243
@@ -23979,7 +23980,8 @@ MonoBehaviour:
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
-  NetworkedBehaviours: []
+  NetworkedBehaviours:
+  - {fileID: 1941815290783614731}
   ForceRemoteRenderTimeframe: 0
 --- !u!82 &2107194568720184056
 AudioSource:

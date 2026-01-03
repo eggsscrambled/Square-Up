@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 863982636477960131}
-  Particles: {fileID: 1894665014395021893}
+  particles: {fileID: 0}
   source: {fileID: 6064454404652319844}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &6064454404652319844
@@ -8983,7 +8983,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 3679657667436419376}
-  Particles: {fileID: 4413818704453361378}
+  particles: {fileID: 0}
   source: {fileID: 5095519269088350115}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &5095519269088350115
@@ -14074,7 +14074,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 324219233846215227}
-  Particles: {fileID: 2968711762497912543}
+  particles: {fileID: 0}
   source: {fileID: 5362135807005473539}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &5362135807005473539
@@ -33736,7 +33736,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 1982456366952837724}
-  Particles: {fileID: 5760877621260901698}
+  particles: {fileID: 0}
   source: {fileID: 1727386793207964839}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!114 &4383578718441606062
@@ -33755,7 +33755,8 @@ MonoBehaviour:
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
-  NetworkedBehaviours: []
+  NetworkedBehaviours:
+  - {fileID: 2352669067410049648}
   ForceRemoteRenderTimeframe: 0
 --- !u!82 &1727386793207964839
 AudioSource:
@@ -33926,6 +33927,9 @@ MonoBehaviour:
   - {fileID: 4383578718441606062}
   NetworkedBehaviours:
   - {fileID: -8565977651327211883}
+  - {fileID: 6730513691035634494}
+  - {fileID: 8064159876114714744}
+  - {fileID: 6715605629512355620}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-8565977651327211883
 MonoBehaviour:
