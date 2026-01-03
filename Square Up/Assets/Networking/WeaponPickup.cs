@@ -64,8 +64,15 @@ public class WeaponPickup : NetworkBehaviour
         {
             IsPickedUp = false;
             Owner = PlayerRef.None;
-            // Initialize with full ammo when weapon first spawns
             CurrentAmmo = weaponData != null ? weaponData.maxAmmo : 0;
+        }
+
+        // NEW: Handle late-join case
+        if (IsPickedUp && networkTransform != null)
+        {
+            networkTransform.enabled = false;
+            if (rb != null) rb.simulated = false;
+            if (col != null) col.enabled = false;
         }
     }
 
