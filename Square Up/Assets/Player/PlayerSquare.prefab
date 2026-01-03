@@ -540,7 +540,7 @@ MonoBehaviour:
     _value: 0
   fovMaskObject: {fileID: 5397305184773364023}
   healthUIParent: {fileID: 8764447855550932316}
-  healthPerSecond: 5
+  healthPerSecond: 10
   maxHealth: 100
   healWindupTime: 0.5
   healthUI: {fileID: 5395612871112234018}
