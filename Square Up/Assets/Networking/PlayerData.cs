@@ -28,9 +28,21 @@ public class PlayerData : NetworkBehaviour
 
     private static readonly Color[] availableColors = new Color[]
     {
-        Color.red, Color.blue, Color.green, Color.yellow,
-        new Color(1f, 0.4f, 0.7f), new Color(0.5f, 0f, 0.5f),
-        new Color(1f, 0.5f, 0f), Color.cyan, Color.black, Color.white,
+        new Color(1f, 0.459f, 0.459f), //red
+        new Color(1f, 0.671f, 0.478f), //orange
+        new Color(1f, 0.984f, 0.478f), //yellow
+        new Color(0.867f, 1f, 0.478f), //tennis ball
+        new Color(0.643f, 1f, 0.478f), //lime
+        new Color(0.439f, 1f, 0.478f), //green
+        new Color(0.439f, 1f, 0.804f), //cyan
+        new Color(0.439f, 0.988f, 1f), //light blue
+        new Color(0.439f, 0.733f, 1f), //blue
+        new Color(0.439f, 0.525f, 1f), //dark blue
+        new Color(0.486f, 0.439f, 1f), //purple
+        new Color(0.655f, 0.439f, 1f), //indigo
+        new Color(0.808f, 0.439f, 1f), //pink
+        new Color(0.969f, 0.439f, 1f), //sexy pink
+        new Color(1f, 0.439f, 0.745f), //barbie pink
     };
 
     private void Awake()
