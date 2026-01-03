@@ -232,27 +232,39 @@ public class WeaponPickup : NetworkBehaviour
     public int GetCurrentAmmo() => CurrentAmmo;
     public void SetCurrentAmmo(int ammo) => CurrentAmmo = ammo;
 
+    // Modified Sound Methods using RPCs
     public void PlayReloadStartSound()
     {
-        if (reloadStartSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(reloadStartSound);
-        }
+        // Only the StateAuthority (Host/Server) or the Owner should trigger the RPC
+        if (Object.HasStateAuthority) RPC_PlayReloadSound(0);
     }
 
     public void PlayReloadMidSound()
     {
-        if (reloadMidSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(reloadMidSound);
-        }
+        if (Object.HasStateAuthority) RPC_PlayReloadSound(1);
     }
 
     public void PlayReloadEndSound()
     {
-        if (reloadEndSound != null && audioSource != null)
+        if (Object.HasStateAuthority) RPC_PlayReloadSound(2);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayReloadSound(int soundType)
+    {
+        if (audioSource == null) return;
+
+        AudioClip clipToPlay = null;
+        switch (soundType)
         {
-            audioSource.PlayOneShot(reloadEndSound);
+            case 0: clipToPlay = reloadStartSound; break;
+            case 1: clipToPlay = reloadMidSound; break;
+            case 2: clipToPlay = reloadEndSound; break;
+        }
+
+        if (clipToPlay != null)
+        {
+            audioSource.PlayOneShot(clipToPlay);
         }
     }
 }
