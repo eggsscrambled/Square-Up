@@ -14,6 +14,7 @@ public class PlayerData : NetworkBehaviour
     [Networked] public TickTimer HealWindupTimer { get; set; } // The delay timer
 
     public GameObject fovMaskObject;
+    public GameObject healthUIParent;
 
     [Header("Healing Settings")]
     [SerializeField] private float healthPerSecond = 15f;
@@ -53,6 +54,7 @@ public class PlayerData : NetworkBehaviour
         if (!Object.HasInputAuthority)
         {
             fovMaskObject.SetActive(false);
+            healthUIParent.SetActive(false);
         }
     }
 
