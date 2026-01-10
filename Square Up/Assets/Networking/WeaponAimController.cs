@@ -151,6 +151,12 @@ public class WeaponAimController : NetworkBehaviour
         Vector3 spawnPos = fireOrigin != null ? fireOrigin.position : _currentWeapon.transform.position;
         Vector2 baseAimDir = (input.mouseWorldPosition - (Vector2)spawnPos).normalized;
 
+        // --- DYNAMIC MUSIC TRIGGER ---
+        if (DynamicMusicManager.Instance != null)
+        {
+            DynamicMusicManager.Instance.RegisterShot();
+        }
+
         for (int i = 0; i < data.bulletAmount; i++)
         {
             int bulletId = nextBulletId + i;

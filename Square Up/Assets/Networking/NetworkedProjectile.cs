@@ -26,6 +26,15 @@ public class NetworkedProjectile : NetworkBehaviour
         _ignoreOwnerTimer = TickTimer.CreateFromSeconds(Runner, 0.1f);
     }
 
+    public override void Spawned()
+    {
+        // This ensures that even if a remote player shoots, 
+        // the local client's music manager registers the "intensity"
+        if (DynamicMusicManager.Instance != null)
+        {
+            DynamicMusicManager.Instance.RegisterShot();
+        }
+    }
     public override void FixedUpdateNetwork()
     {
         if (LifeTime.Expired(Runner))
