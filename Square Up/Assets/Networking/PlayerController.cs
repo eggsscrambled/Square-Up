@@ -22,6 +22,8 @@ public class PlayerController : NetworkBehaviour
     private Rigidbody2D _rb;
     private PlayerData _playerData;
 
+    public float GetMoveSpeed() => moveSpeed;
+
     [Networked] private Vector2 Velocity { get; set; }
     [Networked] private Vector2 RecoilVelocity { get; set; }
     [Networked] private TickTimer DashTimer { get; set; }

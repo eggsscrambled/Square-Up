@@ -68459,7 +68459,7 @@ MonoBehaviour:
   runnerPrefab: {fileID: 1485452235843177904, guid: aceba4577d7edfe41b0652c872431265, type: 3}
   playerPrefab: {fileID: 8841829008368839461, guid: 1eb3e37e962c7294cbf0fd6668b016c3, type: 3}
   gameSceneBuildIndex: 1
-  lobbyIDField: {fileID: 0}
+  lobbyIDField: {fileID: 882696622}
 --- !u!4 &1335017971
 Transform:
   m_ObjectHideFlags: 0

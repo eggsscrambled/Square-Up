@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -17,7 +18,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private GameObject[] spawnPoints;
 
-    public InputField lobbyIDField;
+    public TextMeshProUGUI lobbyIDField;
 
     // Accumulators ensure we don't miss a fast keypress between ticks
     private bool _pickupAccumulator;
