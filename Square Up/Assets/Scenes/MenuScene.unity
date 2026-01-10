@@ -6615,7 +6615,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Veiw all ranks
+  m_text: View all ranks
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: bc207a77f32b8f24f911f7ce68b01ca5, type: 2}
   m_sharedMaterial: {fileID: -9076333045470218704, guid: bc207a77f32b8f24f911f7ce68b01ca5, type: 2}
@@ -57767,10 +57767,10 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: When playing a match you will gain or lose SR (Skill Rating) depending
-    on wether you win or lose the game. you have a seperate rank for all gameodes.
-    your SR change will also be impacted by the rank difference of your oppenents,
+    on whether you win or lose the game. you have a separate rank for all gamemodes.
+    your SR change will also be impacted by the rank difference of your opponents,
     this is to account for the fact that there is no skill based matchmaking. Reach
-    1000 SR in a mode to qualify for a leaderboard position
+    1000 SR in a mode to qualify for a leaderboard position.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: bc207a77f32b8f24f911f7ce68b01ca5, type: 2}
   m_sharedMaterial: {fileID: -9076333045470218704, guid: bc207a77f32b8f24f911f7ce68b01ca5, type: 2}
