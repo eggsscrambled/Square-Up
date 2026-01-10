@@ -47,7 +47,7 @@ public class GlobalFXManager : NetworkBehaviour
                 }
             }
             // Blood/Environment hits usually don't have long sounds, 1.5s is usually safe
-            Destroy(inst, 1.5f);
+            Destroy(inst, 5f);
         }
     }
 

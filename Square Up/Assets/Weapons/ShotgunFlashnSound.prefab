@@ -9687,6 +9687,7 @@ GameObject:
   - component: {fileID: 8342221320146297705}
   - component: {fileID: 9002782466577895887}
   - component: {fileID: 193438498822000470}
+  - component: {fileID: 702092695515990880}
   m_Layer: 0
   m_Name: ShootSfx
   m_TagString: Untagged
@@ -9820,3 +9821,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RandomizePitch
   min: 0.8
   max: 1.2
+--- !u!114 &702092695515990880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8349345127232552778}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c14bced7e0d4224599c6018854520d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponAudioVolume
