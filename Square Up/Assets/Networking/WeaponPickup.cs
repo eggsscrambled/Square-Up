@@ -33,6 +33,10 @@ public class WeaponPickup : NetworkBehaviour
     [Networked] private NetworkId OwnerId { get; set; }
     [Networked] public int CurrentAmmo { get; set; }
 
+    // Using an int trigger + ChangeDetector is more reliable than RPCs for sounds
+    [Networked] private int ReloadSoundTrigger { get; set; }
+    private ChangeDetector _changeDetector;
+
     private Rigidbody2D rb;
     private Collider2D col;
     private NetworkTransform networkTransform;
@@ -57,6 +61,7 @@ public class WeaponPickup : NetworkBehaviour
 
     public override void Spawned()
     {
+        _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
         startPosition = transform.position;
         gameManager = FindFirstObjectByType<GameManager>();
 
@@ -67,7 +72,6 @@ public class WeaponPickup : NetworkBehaviour
             CurrentAmmo = weaponData != null ? weaponData.maxAmmo : 0;
         }
 
-        // NEW: Handle late-join case
         if (IsPickedUp && networkTransform != null)
         {
             networkTransform.enabled = false;
@@ -123,14 +127,12 @@ public class WeaponPickup : NetworkBehaviour
         }
         if (col != null) col.enabled = true;
 
-        // Re-enable NetworkTransform and immediately teleport to sync the new position
         if (networkTransform != null)
         {
             networkTransform.enabled = true;
             networkTransform.Teleport(pos, transform.rotation);
         }
 
-        // Notify all clients of the drop with the new position
         RPC_SyncDrop(pos, false);
     }
 
@@ -148,12 +150,10 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SyncDrop(Vector3 dropPosition, bool pickedUp)
     {
-        // Update visual state
         if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
         if (spriteRenderer != null) spriteRenderer.flipY = false;
         if (fireOrigin != null) fireOrigin.localPosition = originalFireOriginLocalPos;
 
-        // Update position for clients (host already set it in Drop())
         if (!Object.HasStateAuthority)
         {
             transform.position = dropPosition;
@@ -163,7 +163,6 @@ public class WeaponPickup : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Update weapon position on server when held
         if (Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();
@@ -172,23 +171,28 @@ public class WeaponPickup : NetworkBehaviour
 
     public override void Render()
     {
-        // Resolve owner reference on all clients
+        // Detect changes in the reload trigger to play sounds
+        foreach (var change in _changeDetector.DetectChanges(this))
+        {
+            if (change == nameof(ReloadSoundTrigger))
+            {
+                PlayLocalSound(ReloadSoundTrigger);
+            }
+        }
+
         ResolveOwnerReference();
 
-        // Update visuals locally on NON-AUTHORITY clients for smooth rendering
         if (!Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
             UpdateWeaponTransform();
         }
 
-        // Handle floating animation when not picked up
         if (!IsPickedUp)
         {
             floatTimer += Time.deltaTime * floatSpeed;
             transform.position = startPosition + Vector3.up * (Mathf.Sin(floatTimer) * floatAmount);
         }
 
-        // Handle sprite flipping
         if (IsPickedUp && flipSpriteWhenAimingLeft && spriteRenderer != null)
         {
             bool shouldFlip = (AimDirection.x < 0) ^ flipShouldFlip;
@@ -202,19 +206,27 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
+    private void PlayLocalSound(int type)
+    {
+        if (audioSource == null) return;
+        AudioClip clip = type switch
+        {
+            1 => reloadStartSound,
+            2 => reloadMidSound,
+            3 => reloadEndSound,
+            _ => null
+        };
+        if (clip != null) audioSource.PlayOneShot(clip);
+    }
+
     private void ResolveOwnerReference()
     {
         if (OwnerId != default && ownerTransform == null)
         {
             if (Runner.TryFindObject(OwnerId, out NetworkObject ownerObj))
-            {
                 ownerTransform = ownerObj.transform;
-            }
         }
-        else if (OwnerId == default)
-        {
-            ownerTransform = null;
-        }
+        else if (OwnerId == default) ownerTransform = null;
     }
 
     private void UpdateWeaponTransform()
@@ -232,39 +244,8 @@ public class WeaponPickup : NetworkBehaviour
     public int GetCurrentAmmo() => CurrentAmmo;
     public void SetCurrentAmmo(int ammo) => CurrentAmmo = ammo;
 
-    // Modified Sound Methods using RPCs
-    public void PlayReloadStartSound()
-    {
-        // Only the StateAuthority (Host/Server) or the Owner should trigger the RPC
-        if (Object.HasStateAuthority) RPC_PlayReloadSound(0);
-    }
-
-    public void PlayReloadMidSound()
-    {
-        if (Object.HasStateAuthority) RPC_PlayReloadSound(1);
-    }
-
-    public void PlayReloadEndSound()
-    {
-        if (Object.HasStateAuthority) RPC_PlayReloadSound(2);
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayReloadSound(int soundType)
-    {
-        if (audioSource == null) return;
-
-        AudioClip clipToPlay = null;
-        switch (soundType)
-        {
-            case 0: clipToPlay = reloadStartSound; break;
-            case 1: clipToPlay = reloadMidSound; break;
-            case 2: clipToPlay = reloadEndSound; break;
-        }
-
-        if (clipToPlay != null)
-        {
-            audioSource.PlayOneShot(clipToPlay);
-        }
-    }
+    // Trigger methods updated to use Networked Int
+    public void PlayReloadStartSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 1; }
+    public void PlayReloadMidSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 2; }
+    public void PlayReloadEndSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 3; }
 }
