@@ -10095,7 +10095,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 7083227929150186644}
-  particles: {fileID: 3460008450515941860}
+  particles: {fileID: 1317972984675123957}
   source: {fileID: 3523952524294542325}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &3523952524294542325
@@ -24171,7 +24171,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 1887666054257388709}
-  particles: {fileID: 1708665722121700292}
+  particles: {fileID: 2884002942259312914}
   source: {fileID: 2107194568720184056}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!114 &2628155130145825243
