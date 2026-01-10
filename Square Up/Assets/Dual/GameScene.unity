@@ -1624,11 +1624,14 @@ MonoBehaviour:
   musicSource: {fileID: 1043241377}
   lowPassFilter: {fileID: 1043241376}
   minVolume: 0.01
-  maxVolume: 1
-  volumePerShot: 0.3
+  maxVolume: 0.6
+  volumePerShot: 0.2
   decayRate: 0.2
   minFrequency: 500
   maxFrequency: 22000
+  normalPitch: 1
+  maxPitch: 1
+  pitchThreshold: 0.75
 --- !u!169 &1043241376
 AudioLowPassFilter:
   m_ObjectHideFlags: 0
@@ -1665,7 +1668,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 879bd46926cb32d4d96e4383f6df3728, type: 3}
+  m_Resource: {fileID: 8300000, guid: 11c7f7a434cbf724a8bc9a4923edcb40, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1

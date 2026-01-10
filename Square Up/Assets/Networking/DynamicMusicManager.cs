@@ -18,6 +18,11 @@ public class DynamicMusicManager : MonoBehaviour
     public float minFrequency = 500f;   // Muffled/Underwater
     public float maxFrequency = 22000f; // Full clarity
 
+    [Header("Pitch Settings")]
+    public float normalPitch = 1.0f;
+    public float maxPitch = 1.15f; // Higher = more intense
+    public float pitchThreshold = 0.75f; // Start pitching up at 75% intensity
+
     private float _currentIntensity = 0f;
 
     private void Awake()
@@ -45,6 +50,18 @@ public class DynamicMusicManager : MonoBehaviour
         if (lowPassFilter != null)
         {
             lowPassFilter.cutoffFrequency = Mathf.Lerp(minFrequency, maxFrequency, _currentIntensity);
+        }
+
+        // Apply Pitch Shift in the top 25% of intensity range
+        if (_currentIntensity >= pitchThreshold)
+        {
+            // Map 0.75-1.0 intensity to 0-1 for pitch lerp
+            float pitchT = (_currentIntensity - pitchThreshold) / (1f - pitchThreshold);
+            musicSource.pitch = Mathf.Lerp(normalPitch, maxPitch, pitchT);
+        }
+        else
+        {
+            musicSource.pitch = normalPitch;
         }
     }
 
