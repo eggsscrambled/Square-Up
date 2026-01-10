@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 863982636477960131}
-  particles: {fileID: 0}
+  particles: {fileID: 8137561582556245908}
   source: {fileID: 6064454404652319844}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &6064454404652319844
@@ -9107,7 +9107,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 3679657667436419376}
-  particles: {fileID: 0}
+  particles: {fileID: 3129787523620930267}
   source: {fileID: 5095519269088350115}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &5095519269088350115
@@ -14229,7 +14229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 324219233846215227}
-  particles: {fileID: 0}
+  particles: {fileID: 7625130740961126388}
   source: {fileID: 5362135807005473539}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!82 &5362135807005473539
@@ -33922,7 +33922,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   teleportPos: {fileID: 1982456366952837724}
-  particles: {fileID: 0}
+  particles: {fileID: 2024353155357812738}
   source: {fileID: 1727386793207964839}
   portalSFX: {fileID: 8300000, guid: 79e770f500af9b144a882608c57eecfe, type: 3}
 --- !u!114 &4383578718441606062
