@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09cc2cca6b3e6df469bcfdaf8dce289b, type: 3}
+  m_Name: ShortRangeOnly
+  m_EditorClassIdentifier: Assembly-CSharp::MapWeaponPool
+  poolName: Short Range (Uzi, Shotgun, Pistol)
+  weapons:
+  - RawGuidValue: afcca5fe998d5394db9ed78cbae1b01e
+  - RawGuidValue: 968904f258f7cc24ea394fb43bfb7c3f
+  - RawGuidValue: 9fb97a11d974c7941b702855ca49804b

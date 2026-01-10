@@ -31,6 +31,8 @@ public class GameManager : NetworkBehaviour
     [Header("Weapons")]
     [SerializeField] private WeaponData[] availableWeapons;
     [SerializeField] private WeaponPickup[] weaponPrefabs;
+    [SerializeField] private float minWeaponFillPercent = 0.3f;
+    [SerializeField] private float maxWeaponFillPercent = 0.7f;
 
     [Header("Game State")]
     [Networked] public NetworkBool GameStarted { get; set; }
@@ -204,6 +206,12 @@ public class GameManager : NetworkBehaviour
         CurrentState = GameState.RoundStarting;
         RoundTimer = TickTimer.CreateFromSeconds(Runner, roundStartDelay);
 
+        // Clear all player weapons
+        ClearAllPlayerWeapons();
+
+        // Clear all dropped weapons from previous round
+        ClearAllDroppedWeapons();
+
         SpawnRandomMap();
 
         // Trigger an initial respawn to reset health/dead flags
@@ -211,6 +219,38 @@ public class GameManager : NetworkBehaviour
         {
             PlayerData data = GetPlayerData(i);
             if (data != null) data.Respawn();
+        }
+
+        // Spawn weapons on the map
+        SpawnMapWeapons();
+    }
+
+    private void ClearAllPlayerWeapons()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        for (int i = 0; i < 2; i++)
+        {
+            PlayerData data = GetPlayerData(i);
+            if (data != null)
+            {
+                data.ClearWeapons();
+            }
+        }
+    }
+
+    private void ClearAllDroppedWeapons()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        // Find all WeaponPickup objects in the scene and despawn them
+        WeaponPickup[] droppedWeapons = FindObjectsOfType<WeaponPickup>();
+        foreach (WeaponPickup weapon in droppedWeapons)
+        {
+            if (weapon.Object != null)
+            {
+                Runner.Despawn(weapon.Object);
+            }
         }
     }
 
@@ -231,6 +271,65 @@ public class GameManager : NetworkBehaviour
         Vector3 spawnPosition = worldOrigin != null ? worldOrigin.position : Vector3.zero;
 
         CurrentMap = Runner.Spawn(selectedMap, spawnPosition, Quaternion.identity);
+    }
+
+    private void SpawnMapWeapons()
+    {
+        if (!Object.HasStateAuthority || CurrentMap == null) return;
+
+        // Find all weapon spawn points in the map
+        Transform[] allChildren = CurrentMap.GetComponentsInChildren<Transform>(true);
+        List<Transform> weaponSpawns = new List<Transform>();
+
+        foreach (Transform child in allChildren)
+        {
+            if (child.CompareTag("WeaponSpawn"))
+            {
+                weaponSpawns.Add(child);
+            }
+        }
+
+        if (weaponSpawns.Count == 0)
+        {
+            Debug.LogWarning("No weapon spawn points found in the map!");
+            return;
+        }
+
+        // Get the weapon pool from the map
+        MapWeaponPoolDataHolder poolHolder = CurrentMap.GetComponent<MapWeaponPoolDataHolder>();
+        if (poolHolder == null || poolHolder.mapWeaponPools == null || poolHolder.mapWeaponPools.Length == 0)
+        {
+            Debug.LogWarning("No weapon pools found on the map!");
+            return;
+        }
+
+        // Pick a random weapon pool
+        MapWeaponPool selectedPool = poolHolder.mapWeaponPools[Random.Range(0, poolHolder.mapWeaponPools.Length)];
+        if (selectedPool == null || selectedPool.weapons == null || selectedPool.weapons.Length == 0)
+        {
+            Debug.LogWarning("Selected weapon pool is empty!");
+            return;
+        }
+
+        // Calculate how many weapons to spawn (random fill percentage, minimum 2)
+        float fillPercent = Random.Range(minWeaponFillPercent, maxWeaponFillPercent);
+        int weaponsToSpawn = Mathf.Max(2, Mathf.RoundToInt(weaponSpawns.Count * fillPercent));
+
+        // Shuffle the spawn points and select the first N
+        List<Transform> shuffledSpawns = weaponSpawns.OrderBy(x => Random.value).ToList();
+
+        // Spawn weapons at selected points
+        for (int i = 0; i < weaponsToSpawn && i < shuffledSpawns.Count; i++)
+        {
+            // Pick a random weapon from the pool
+            NetworkPrefabRef randomWeapon = selectedPool.weapons[Random.Range(0, selectedPool.weapons.Length)];
+
+            // Spawn the weapon at this point
+            Vector3 spawnPos = shuffledSpawns[i].position;
+            Runner.Spawn(randomWeapon, spawnPos, Quaternion.identity);
+        }
+
+        Debug.Log($"Spawned {weaponsToSpawn} weapons from pool '{selectedPool.poolName}' at {weaponSpawns.Count} available spawn points");
     }
 
     private void StartRound() => CurrentState = GameState.RoundActive;

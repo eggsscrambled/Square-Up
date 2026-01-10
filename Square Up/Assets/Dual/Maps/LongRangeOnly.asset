@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09cc2cca6b3e6df469bcfdaf8dce289b, type: 3}
+  m_Name: LongRangeOnly
+  m_EditorClassIdentifier: Assembly-CSharp::MapWeaponPool
+  poolName: Long Range (Deagle, Sniper)
+  weapons:
+  - RawGuidValue: c7742ce9b0c11eb408a1fceba8dd589b
+  - RawGuidValue: 50cb8891a227e394787951cdb30a1d42
