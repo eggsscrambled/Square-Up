@@ -28,3 +28,5 @@ MonoBehaviour:
   isAutomatic: 1
   recoilForce: 5
   bulletLifetime: 0.35
+  cameraShakeIntensity: 0.5
+  cameraShakeDuration: 0.2

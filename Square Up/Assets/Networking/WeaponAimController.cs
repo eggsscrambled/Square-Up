@@ -142,6 +142,12 @@ public class WeaponAimController : NetworkBehaviour
                 _playerController.ApplyRecoil(-input.aimDirection.normalized * data.recoilForce);
         }
 
+        // Trigger camera shake for local player only
+        if (Object.HasInputAuthority && CameraEffects.Instance != null)
+        {
+            CameraEffects.Instance.AddScreenShake(data.cameraShakeIntensity, data.cameraShakeDuration);
+        }
+
         SpawnBullets(input, data);
     }
 

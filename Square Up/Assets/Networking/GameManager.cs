@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class GameManager : NetworkBehaviour
 {
@@ -189,12 +190,41 @@ public class GameManager : NetworkBehaviour
     public void StartGame()
     {
         if (!Object.HasStateAuthority || GameStarted) return;
-        if (Runner.ActivePlayers.Count() < 2) return;
+        if (Runner.ActivePlayers.Count() < 2)
+        {
+            DestroyAllDontDestroyOnLoadObjects();
+            SceneManager.LoadScene(0);
+            return;
+        }
 
         GameStarted = true;
         for (int i = 0; i < PlayerWins.Length; i++) PlayerWins.Set(i, 0);
 
         PrepareNextRound();
+    }
+
+    private void DestroyAllDontDestroyOnLoadObjects()
+    {
+        GameObject temp = null;
+        try
+        {
+            temp = new GameObject("Temp");
+            DontDestroyOnLoad(temp);
+            Scene dontDestroyOnLoadScene = temp.scene;
+            DestroyImmediate(temp);
+            temp = null;
+
+            GameObject[] rootObjects = dontDestroyOnLoadScene.GetRootGameObjects();
+            foreach (GameObject obj in rootObjects)
+            {
+                Destroy(obj);
+            }
+        }
+        finally
+        {
+            if (temp != null)
+                DestroyImmediate(temp);
+        }
     }
 
     private void PrepareNextRound()

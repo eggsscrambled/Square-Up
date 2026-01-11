@@ -150,7 +150,7 @@ RectTransform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.32454342, y: 0.32454342, z: 0.32454342}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 2098234769}
   m_Father: {fileID: 1619671698}
@@ -327,14 +327,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1619671697}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.9
-  baseSize: 0.7
-  ClcikSize: 0.7
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.3245434
+  hoverScale: 0.35
+  pressScale: 0.4
+  scaleSpeed: 20
 --- !u!1 &3623742
 GameObject:
   m_ObjectHideFlags: 0
@@ -9888,6 +9887,7 @@ GameObject:
   - component: {fileID: 207542383}
   - component: {fileID: 207542382}
   - component: {fileID: 207542381}
+  - component: {fileID: 207542385}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -9984,6 +9984,22 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &207542385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 207542380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2237816942cf0545a66d1cbebcd07ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Settings
+  menuMusicSource: {fileID: 1554693177}
+  musicSlider: {fileID: 1281390430}
+  weaponSlider: {fileID: 543232789}
+  miscSlider: {fileID: 1109628394}
 --- !u!1 &208281960
 GameObject:
   m_ObjectHideFlags: 0
@@ -10517,14 +10533,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 217057880}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &217057884
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20932,7 +20947,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -22767,7 +22782,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -28181,14 +28196,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 562974688}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 2.8
-  baseSize: 2.48708
-  ClcikSize: 2.48708
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 1
+  hoverScale: 1.2
+  pressScale: 0.95
+  scaleSpeed: 8
 --- !u!114 &562974692
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29125,14 +29139,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 581038229}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 2.6
-  baseSize: 2.48708
-  ClcikSize: 2.48708
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 2.48708
+  hoverScale: 2.85
+  pressScale: 3
+  scaleSpeed: 8
 --- !u!114 &581038234
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29514,7 +29527,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -86.929504, y: -152.4}
+  m_AnchoredPosition: {x: -106.7, y: -152.4}
   m_SizeDelta: {x: 316.116, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &587211647
@@ -29602,14 +29615,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 587211645}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &587211649
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34600,14 +34612,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 702861798}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &702861802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34743,7 +34754,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -129.20251, y: 218.6}
+  m_AnchoredPosition: {x: -149.1, y: 218.6}
   m_SizeDelta: {x: 195.3361, y: 67.4062}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &705784650
@@ -34840,14 +34851,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 705784648}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.9
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &705784654
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42283,14 +42293,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 838259424}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &838259428
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47396,14 +47405,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 948605892}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &948605896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47861,7 +47869,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -49797,7 +49805,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -131.36993, y: -225.9}
+  m_AnchoredPosition: {x: -151.4, y: -225.9}
   m_SizeDelta: {x: 189.1474, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &993518120
@@ -49885,14 +49893,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 993518118}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &993518122
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -50214,7 +50221,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 995803668}
-  - component: {fileID: 995803669}
   m_Layer: 0
   m_Name: Settings
   m_TagString: Untagged
@@ -50240,22 +50246,6 @@ Transform:
   - {fileID: 1740290775}
   m_Father: {fileID: 207542384}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &995803669
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 995803667}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2237816942cf0545a66d1cbebcd07ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Settings
-  menuMusicSource: {fileID: 1554693177}
-  musicSlider: {fileID: 1281390430}
-  weaponSlider: {fileID: 543232789}
-  miscSlider: {fileID: 1109628394}
 --- !u!1 &995962030
 GameObject:
   m_ObjectHideFlags: 0
@@ -52915,7 +52905,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -54154,7 +54144,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -62.84955, y: -75.9}
+  m_AnchoredPosition: {x: -92.6, y: -75.9}
   m_SizeDelta: {x: 384.92, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1048932186
@@ -54242,14 +54232,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1048932184}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &1048932188
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54949,8 +54938,8 @@ RectTransform:
   m_GameObject: {fileID: 1057270410}
   m_LocalRotation: {x: -0, y: -0, z: -0.0073646894, w: 0.9999729}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.9275, y: 3.9275, z: 3.9275}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1.48, y: 1.48, z: 1.48}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1172543679}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -0.844}
@@ -55006,10 +54995,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
+  m_fontSize: 67.85
   m_fontSizeBase: 24
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
@@ -59790,7 +59779,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -58.089355, y: 67}
+  m_AnchoredPosition: {x: -87, y: 67}
   m_SizeDelta: {x: 398.5213, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1160371353
@@ -59850,14 +59839,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1160371351}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &1160371355
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60648,14 +60636,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1172525076}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 2.6
-  baseSize: 2.48708
-  ClcikSize: 2.48708
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 1
+  hoverScale: 1.2
+  pressScale: 0.95
+  scaleSpeed: 8
 --- !u!114 &1172525081
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60925,14 +60912,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 154539063}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.9
-  baseSize: 0.7
-  ClcikSize: 0.7
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.2778881
+  hoverScale: 0.3
+  pressScale: 0.32
+  scaleSpeed: 20
 --- !u!1 &1174385495
 GameObject:
   m_ObjectHideFlags: 0
@@ -65112,14 +65098,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1253685622}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &1253685626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71336,7 +71321,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -76538,7 +76523,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -81752,14 +81737,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1558873314}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 594216411}
+  hoverSound: {fileID: 8300000, guid: 754be669c64a28e47a987acf70582216, type: 3}
+  pressSound: {fileID: 8300000, guid: 5cbfcbeb29b7de5459a1ff028bc6086e, type: 3}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 20
 --- !u!114 &1558873318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91747,7 +91731,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -93597,14 +93581,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 1794205246}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 2.6
-  baseSize: 2.48708
-  ClcikSize: 2.48708
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 1
+  hoverScale: 1.2
+  pressScale: 0.95
+  scaleSpeed: 8
 --- !u!114 &1794205251
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -106520,7 +106503,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -58.089355, y: -3.3}
+  m_AnchoredPosition: {x: -138.4, y: -3.3}
   m_SizeDelta: {x: 398.5213, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2078110118
@@ -106580,14 +106563,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 2078110116}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &2078110120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107502,14 +107484,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 2094967002}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 2.8
-  baseSize: 2.48708
-  ClcikSize: 2.48708
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 1
+  hoverScale: 1.2
+  pressScale: 0.95
+  scaleSpeed: 8
 --- !u!114 &2094967006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107665,8 +107646,8 @@ RectTransform:
   m_GameObject: {fileID: 2098234768}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.9275, y: 3.9275, z: 3.9275}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1.38, y: 1.38, z: 1.38}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2456985}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -107722,10 +107703,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
+  m_fontSize: 67.85
   m_fontSizeBase: 24
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
@@ -108083,7 +108064,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -62.84955, y: 144.9}
+  m_AnchoredPosition: {x: -92.1, y: 144.9}
   m_SizeDelta: {x: 384.92, y: 83.8012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2103133557
@@ -108171,14 +108152,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec29c1beee6238440bd0baef19ea82cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimator
-  button: {fileID: 2103133555}
-  InButton: 0
-  Hover: {fileID: 8300000, guid: 3b9d9ed4d78d0bb43a7efc20666478d9, type: 3}
-  Press: {fileID: 8300000, guid: 55e0cb4a83ca73246b2031e1446417e8, type: 3}
-  SizeChangeSpeed: 5
-  targetSize: 0.8
-  baseSize: 0.7
-  ClcikSize: 0.9
+  audioSource: {fileID: 0}
+  hoverSound: {fileID: 0}
+  pressSound: {fileID: 0}
+  normalScale: 0.7
+  hoverScale: 0.9
+  pressScale: 0.95
+  scaleSpeed: 32
 --- !u!114 &2103133559
 MonoBehaviour:
   m_ObjectHideFlags: 0

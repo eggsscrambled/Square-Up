@@ -100,4 +100,13 @@ public class PlayerController : NetworkBehaviour
         if (Object.HasStateAuthority || Object.HasInputAuthority)
             RecoilVelocity += recoilForce;
     }
+
+    private void LateUpdate()
+    {
+        // Only update camera for local player
+        if (Object.HasInputAuthority && CameraEffects.Instance != null)
+        {
+            CameraEffects.Instance.UpdatePlayerData(transform.position, _rb.linearVelocity);
+        }
+    }
 }

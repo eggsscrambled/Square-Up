@@ -759,7 +759,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 936d8caf7f69d864aa198f1d509f4ad4, type: 3}
   stepInterval: 0.4
   minSpeedForFootsteps: 0.5
-  volumeScale: 0.4
+  volumeScale: 1
   minPitch: 0.9
   maxPitch: 1.1
 --- !u!1 &5397305184773364023
