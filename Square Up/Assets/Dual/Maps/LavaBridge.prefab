@@ -103,9 +103,10 @@ GameObject:
   m_Component:
   - component: {fileID: 5289767218412612316}
   - component: {fileID: 3717745340083578150}
-  - component: {fileID: 3496049769038359361}
   - component: {fileID: 4554679175519172998}
   - component: {fileID: 8913707567338840825}
+  - component: {fileID: 4878707212379701202}
+  - component: {fileID: 3389323512435226254}
   m_Layer: 0
   m_Name: Square
   m_TagString: Untagged
@@ -186,7 +187,57 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!61 &3496049769038359361
+--- !u!114 &4554679175519172998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2807171659753406346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 302ce052e5e41fa4a89b73495ab9d72a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkedLava
+  minLiquidTime: 4
+  maxLiquidTime: 8
+  solidDuration: 3
+  transitionDuration: 1
+  damagePerSecond: 50
+  enableDebugLogs: 1
+--- !u!114 &8913707567338840825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2807171659753406346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 2953221070
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4554679175519172998}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &4878707212379701202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2807171659753406346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e25c03f2b396909418d4bcb1ab0fe04d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObsidianWaveController
+  waveSpeed: 0.5
+--- !u!61 &3389323512435226254
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -232,41 +283,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &4554679175519172998
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2807171659753406346}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 302ce052e5e41fa4a89b73495ab9d72a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkedLava
-  minLiquidTime: 3
-  maxLiquidTime: 8
-  solidDuration: 1
-  damagePerSecond: 20
---- !u!114 &8913707567338840825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2807171659753406346}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 2953221070
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours:
-  - {fileID: 4554679175519172998}
-  ForceRemoteRenderTimeframe: 0
 --- !u!1 &4556031971565430075
 GameObject:
   m_ObjectHideFlags: 0
@@ -483,6 +499,7 @@ GameObject:
   - component: {fileID: 6144193822519573548}
   - component: {fileID: 5253736831070022250}
   - component: {fileID: 439332297143456342}
+  - component: {fileID: 3228391217608859495}
   m_Layer: 6
   m_Name: Map
   m_TagString: Untagged
@@ -3944,6 +3961,19 @@ TilemapCollider2D:
   m_MaximumTileChangeCount: 1000
   m_ExtrusionFactor: 0
   m_UseDelaunayMesh: 0
+--- !u!114 &3228391217608859495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6544994110393713429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e25c03f2b396909418d4bcb1ab0fe04d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObsidianWaveController
+  waveSpeed: 0.5
 --- !u!1 &7171396836088458489
 GameObject:
   m_ObjectHideFlags: 0
@@ -3985,9 +4015,10 @@ GameObject:
   m_Component:
   - component: {fileID: 5774066052875860652}
   - component: {fileID: 3376343545210070949}
-  - component: {fileID: 6628017279347939953}
   - component: {fileID: 5789374813721494448}
   - component: {fileID: 755206240293068861}
+  - component: {fileID: 433902881678336337}
+  - component: {fileID: 1563896490825601836}
   m_Layer: 0
   m_Name: Square (1)
   m_TagString: Untagged
@@ -4068,7 +4099,57 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!61 &6628017279347939953
+--- !u!114 &5789374813721494448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7438771206480748409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 302ce052e5e41fa4a89b73495ab9d72a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkedLava
+  minLiquidTime: 4
+  maxLiquidTime: 8
+  solidDuration: 3
+  transitionDuration: 1
+  damagePerSecond: 50
+  enableDebugLogs: 1
+--- !u!114 &755206240293068861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7438771206480748409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 983485373
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5789374813721494448}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &433902881678336337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7438771206480748409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e25c03f2b396909418d4bcb1ab0fe04d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObsidianWaveController
+  waveSpeed: 0.5
+--- !u!61 &1563896490825601836
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4114,41 +4195,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &5789374813721494448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7438771206480748409}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 302ce052e5e41fa4a89b73495ab9d72a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkedLava
-  minLiquidTime: 3
-  maxLiquidTime: 8
-  solidDuration: 1
-  damagePerSecond: 20
---- !u!114 &755206240293068861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7438771206480748409}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 983485373
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours:
-  - {fileID: 5789374813721494448}
-  ForceRemoteRenderTimeframe: 0
 --- !u!1 &9087497758232226034
 GameObject:
   m_ObjectHideFlags: 0

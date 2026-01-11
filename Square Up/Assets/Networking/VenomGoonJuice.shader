@@ -1,4 +1,4 @@
-Shader "Custom/CalmObsidianOcean"
+Shader "Custom/CalmObsidianOcean_Individual"
 {
     Properties
     {
@@ -7,7 +7,7 @@ Shader "Custom/CalmObsidianOcean"
         
         [Header(Wave Settings)]
         _WaveScale ("Wave Size", Float) = 4.0
-        _WaveSpeed ("Wave Speed", Float) = 0.5
+        _WaveOffset ("Wave Animation Offset", Float) = 0
         [HDR] _SheenColor ("Sheen Color", Color) = (1, 1, 1, 1)
         _SheenIntensity ("Sheen Brightness", Range(0, 10)) = 2.5
         _SheenTightness ("Sheen Sharpness", Range(1, 20)) = 10.0
@@ -29,13 +29,25 @@ Shader "Custom/CalmObsidianOcean"
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            struct Attributes { float4 positionOS : POSITION; float2 uv : TEXCOORD0; };
-            struct Varyings { float4 positionHCS : SV_POSITION; float2 uv : TEXCOORD0; float3 worldPos : TEXCOORD1; };
+            struct Attributes { 
+                float4 positionOS : POSITION; 
+                float2 uv : TEXCOORD0; 
+            };
+            
+            struct Varyings { 
+                float4 positionHCS : SV_POSITION; 
+                float2 uv : TEXCOORD0; 
+                float3 worldPos : TEXCOORD1; 
+            };
 
             sampler2D _MainTex;
-            float4 _BaseDarkness;
-            float4 _SheenColor;
-            float _WaveScale, _WaveSpeed, _SheenIntensity, _SheenTightness, _Distortion;
+
+            // SRP Batcher Compatible
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseDarkness;
+                float4 _SheenColor;
+                float _WaveScale, _WaveOffset, _SheenIntensity, _SheenTightness, _Distortion;
+            CBUFFER_END
 
             float2 hash(float2 p) {
                 p = float2(dot(p, float2(127.1, 311.7)), dot(p, float2(269.5, 183.3)));
@@ -54,6 +66,7 @@ Shader "Custom/CalmObsidianOcean"
             Varyings vert (Attributes IN) {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
+                // Keeping worldPos for global noise continuity across tiled sprites
                 OUT.worldPos = TransformObjectToWorld(IN.positionOS.xyz);
                 OUT.uv = IN.uv;
                 return OUT;
@@ -65,8 +78,9 @@ Shader "Custom/CalmObsidianOcean"
                 if (sprite.a < 0.1) discard;
 
                 // 2. GENERATE SMOOTH OCEAN NOISE
+                // Use the custom _WaveOffset which is calculated in C#
+                float t = _WaveOffset;
                 float2 uv = IN.worldPos.xy * (_WaveScale * 0.1);
-                float t = _Time.y * _WaveSpeed;
                 
                 float n = noise(uv + t);
                 n += noise(uv * 2.0 - t * 0.5) * 0.5;
@@ -81,11 +95,7 @@ Shader "Custom/CalmObsidianOcean"
 
                 // 4. FINAL COLOR COMPOSITION
                 half3 finalColor = _BaseDarkness.rgb;
-                
-                // Add the colored sheen
                 finalColor += sheen * _SheenIntensity * _SheenColor.rgb;
-
-                // RIM GLOW REMOVED HERE to prevent tile borders/lines
                 
                 return half4(finalColor, sprite.a);
             }

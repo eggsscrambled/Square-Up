@@ -55,6 +55,7 @@ Material:
     - _EnableExternalAlpha: 0
     - _GlowIntensity: 3.1
     - _GlowRange: 4
+    - _ManualTime: 0
     - _NoiseScale: 10
     - _RefractionDepth: 0
     - _RefractionStrength: 0.15
@@ -62,16 +63,17 @@ Material:
     - _SheenSpeed: 1.2
     - _SheenTightness: 20
     - _SheenWidth: 8.6
+    - _WaveOffset: 0
     - _WaveScale: 4.43
     - _WaveSpeed: 2
     - _ZWrite: 0
     m_Colors:
-    - _BaseDarkness: {r: 1, g: 0.5647059, b: 0, a: 1}
+    - _BaseDarkness: {r: 0.142, g: 0.07963138, b: 0, a: 1}
     - _BorderColor: {r: 1, g: 0, b: 0, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _FlowSpeed: {r: 0.05, g: 0.05, b: 0, a: 0}
     - _FluidColor: {r: 0, g: 1.3420686, b: 2.670157, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SheenColor: {r: 0.02641511, g: 0.02057892, b: 0, a: 1}
+    - _SheenColor: {r: 0.02745098, g: 0.003625018, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

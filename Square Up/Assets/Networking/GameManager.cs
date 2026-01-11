@@ -28,6 +28,7 @@ public class GameManager : NetworkBehaviour
 
     [Header("Map Settings")]
     [SerializeField] private NetworkPrefabRef[] availableMaps;
+    public int debugMapIndex = -1;
 
     [Header("Weapons")]
     [SerializeField] private WeaponData[] availableWeapons;
@@ -297,6 +298,10 @@ public class GameManager : NetworkBehaviour
         if (availableMaps == null || availableMaps.Length == 0) return;
 
         int randomIndex = Random.Range(0, availableMaps.Length);
+
+        if (debugMapIndex > -1)
+            randomIndex = debugMapIndex;
+
         NetworkPrefabRef selectedMap = availableMaps[randomIndex];
         Vector3 spawnPosition = worldOrigin != null ? worldOrigin.position : Vector3.zero;
 

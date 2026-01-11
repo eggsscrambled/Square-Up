@@ -308,6 +308,7 @@ GameObject:
   - component: {fileID: 6144193822519573548}
   - component: {fileID: 5253736831070022250}
   - component: {fileID: 439332297143456342}
+  - component: {fileID: 4822579627299535492}
   m_Layer: 6
   m_Name: Map
   m_TagString: Untagged
@@ -4049,6 +4050,19 @@ TilemapCollider2D:
   m_MaximumTileChangeCount: 1000
   m_ExtrusionFactor: 0
   m_UseDelaunayMesh: 0
+--- !u!114 &4822579627299535492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6544994110393713429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e25c03f2b396909418d4bcb1ab0fe04d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObsidianWaveController
+  waveSpeed: 0.5
 --- !u!1 &6615560005433467256
 GameObject:
   m_ObjectHideFlags: 0
