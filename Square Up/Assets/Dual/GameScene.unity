@@ -356,7 +356,7 @@ MonoBehaviour:
   - RawGuidValue: f2a463caf05d9284e9ea66f4c61067e8
   - RawGuidValue: e7df53997ee622348bf71f69093fe68a
   - RawGuidValue: bee4714097386af47bd315b6becab2e0
-  debugMapIndex: 11
+  debugMapIndex: -1
   availableWeapons:
   - {fileID: 11400000, guid: c861993e121738741b73d355824e63a6, type: 2}
   - {fileID: 11400000, guid: 07f955f69d6caf347b78d331909fd6d5, type: 2}
