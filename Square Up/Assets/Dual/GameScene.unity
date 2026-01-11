@@ -346,13 +346,16 @@ MonoBehaviour:
   availableMaps:
   - RawGuidValue: 442ba28153436184b9f4845ed73849f9
   - RawGuidValue: 26802c155833e7e4e81ff7e9c9b9b780
-  - RawGuidValue: 63fb1f8f8a67b144cb9ff4803b00a3f9
+  - RawGuidValue: 4216d900dbcd3e944a909112388d7c7d
   - RawGuidValue: 621f440eb5e51f845ad8c4f81d6b207d
   - RawGuidValue: 51a2baa2ea2b2eb4196070d7dac78b3f
   - RawGuidValue: 823253cf60c5a7d4c952d00182e54359
   - RawGuidValue: a8bf38243ce6ff54fa5d389bc53fbce6
   - RawGuidValue: 0fb761743d0342d4cb4db844d330faf7
   - RawGuidValue: 7f0aebed070f9b342b211058e14bcfe6
+  - RawGuidValue: f2a463caf05d9284e9ea66f4c61067e8
+  - RawGuidValue: e7df53997ee622348bf71f69093fe68a
+  - RawGuidValue: 63fb1f8f8a67b144cb9ff4803b00a3f9
   availableWeapons:
   - {fileID: 11400000, guid: c861993e121738741b73d355824e63a6, type: 2}
   - {fileID: 11400000, guid: 07f955f69d6caf347b78d331909fd6d5, type: 2}
