@@ -58,11 +58,11 @@ Material:
     - _NoiseScale: 10
     - _RefractionDepth: 0
     - _RefractionStrength: 0.15
-    - _SheenIntensity: 0.02
+    - _SheenIntensity: 0.33
     - _SheenSpeed: 1.2
-    - _SheenTightness: 7.9
+    - _SheenTightness: 1
     - _SheenWidth: 8.6
-    - _WaveScale: 0.57
+    - _WaveScale: 1.78
     - _WaveSpeed: -0.1
     - _ZWrite: 0
     m_Colors:

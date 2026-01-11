@@ -1,86 +1,73 @@
 using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class ButtonAnimator : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hoverSound;
+    [SerializeField] private AudioClip pressSound;
 
-    public GameObject button;
-    public bool InButton;
-    private AudioSource audioSource;
-    public AudioClip Hover;
-    public AudioClip Press;
+    [Header("Scale Settings")]
+    [SerializeField] private float normalScale = 1f;
+    [SerializeField] private float hoverScale = 1.2f;
+    [SerializeField] private float pressScale = 0.95f;
+    [SerializeField] private float scaleSpeed = 8f;
 
-
-    [Header("Size Change")]
-    public float SizeChangeSpeed;
-    public float targetSize;
-    public float baseSize;
-    public float ClcikSize;
-
-
+    private Vector3 targetScale;
+    private bool isHovering;
 
     private void Start()
     {
-        audioSource = GameObject.Find("Main Camera").GetComponent<AudioSource>();
+        transform.localScale = Vector3.one * normalScale;
+        targetScale = transform.localScale;
     }
+
+    private void Update()
+    {
+        // Smoothly interpolate to target scale
+        transform.localScale = Vector3.Lerp(
+            transform.localScale,
+            targetScale,
+            scaleSpeed * Time.deltaTime
+        );
+    }
+
     public void OnHover()
     {
+        isHovering = true;
+        targetScale = Vector3.one * hoverScale;
 
-            InButton = true;
-        audioSource.pitch = Random.Range(0.9f, 1.1f);
-        audioSource.PlayOneShot(Hover);
-
-
+        if (audioSource && hoverSound)
+        {
+            audioSource.pitch = Random.Range(0.9f, 1.1f);
+            audioSource.PlayOneShot(hoverSound);
+        }
     }
 
     public void OnHoverExit()
     {
-            InButton = false;
+        isHovering = false;
+        targetScale = Vector3.one * normalScale;
     }
 
-
-    private void Update()
+    public void OnPressed()
     {
+        StartCoroutine(PressAnimation());
 
-
-        
-            if (InButton)
-            {
-                if (button.transform.localScale.x < targetSize && button.transform.localScale.y < targetSize)
-                {
-                     button.transform.localScale += new Vector3(SizeChangeSpeed, SizeChangeSpeed, 0) * Time.deltaTime;
-                }
-
-
-
-
-            }
-
-            if (!InButton)
-            {
-                if (button.transform.localScale.x > baseSize && button.transform.localScale.y > baseSize)
-                {
-                     button.transform.localScale -= new Vector3(SizeChangeSpeed, SizeChangeSpeed, 0) * Time.deltaTime;
-                }
-
-
-
-
-            }
-
-        
-
-
+        if (audioSource && pressSound)
+        {
+            audioSource.PlayOneShot(pressSound);
+        }
     }
 
-    public void pressed()
+    private IEnumerator PressAnimation()
     {
-        InButton = false ;
-        button.transform.localScale = new Vector3(baseSize, baseSize, baseSize);
-        audioSource.PlayOneShot(Press);
+        // Quick press down
+        targetScale = Vector3.one * pressScale;
+        yield return new WaitForSeconds(0.1f);
+
+        // Return to normal or hover state
+        targetScale = Vector3.one * (isHovering ? hoverScale : normalScale);
     }
 }

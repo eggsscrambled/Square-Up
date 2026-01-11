@@ -118,6 +118,23 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
+    public void ClearWeapons()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        // Drop current weapon if any
+        if (WeaponIndex > 0)
+        {
+            WeaponData weaponData = GameManager.Instance.GetWeaponData(WeaponIndex);
+            if (weaponData != null)
+            {
+                GameManager.Instance.SpawnDroppedWeapon(weaponData, transform.position);
+            }
+        }
+
+        // Clear the weapon
+        WeaponIndex = 0;
+    }
     private void ApplyColor()
     {
         if (sprite != null && PlayerColorIndex >= 0 && PlayerColorIndex < availableColors.Length)

@@ -398,6 +398,7 @@ GameObject:
   - component: {fileID: 959782736998137690}
   - component: {fileID: 2784865453753547661}
   - component: {fileID: 3636577294870292514}
+  - component: {fileID: 259407617630815949}
   m_Layer: 7
   m_Name: PlayerSquare
   m_TagString: Player
@@ -740,6 +741,27 @@ MonoBehaviour:
   ammoColor: {r: 1, g: 1, b: 1, a: 1}
   lowAmmoColor: {r: 1, g: 0, b: 0, a: 1}
   lowAmmoThreshold: 0.3
+--- !u!114 &259407617630815949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4824145230785826498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0432e95bf43436409947f791939c4a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFootstepManager
+  footstepSounds:
+  - {fileID: 8300000, guid: 8aeae98811efcad47943ac001be9074c, type: 3}
+  - {fileID: 8300000, guid: db23ef64aa5169446ba874553c108286, type: 3}
+  - {fileID: 8300000, guid: 936d8caf7f69d864aa198f1d509f4ad4, type: 3}
+  stepInterval: 0.4
+  minSpeedForFootsteps: 0.5
+  volumeScale: 1
+  minPitch: 0.9
+  maxPitch: 1.1
 --- !u!1 &5397305184773364023
 GameObject:
   m_ObjectHideFlags: 0

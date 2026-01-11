@@ -22,6 +22,8 @@ public class PlayerController : NetworkBehaviour
     private Rigidbody2D _rb;
     private PlayerData _playerData;
 
+    public float GetMoveSpeed() => moveSpeed;
+
     [Networked] private Vector2 Velocity { get; set; }
     [Networked] private Vector2 RecoilVelocity { get; set; }
     [Networked] private TickTimer DashTimer { get; set; }
@@ -97,5 +99,14 @@ public class PlayerController : NetworkBehaviour
     {
         if (Object.HasStateAuthority || Object.HasInputAuthority)
             RecoilVelocity += recoilForce;
+    }
+
+    private void LateUpdate()
+    {
+        // Only update camera for local player
+        if (Object.HasInputAuthority && CameraEffects.Instance != null)
+        {
+            CameraEffects.Instance.UpdatePlayerData(transform.position, _rb.linearVelocity);
+        }
     }
 }

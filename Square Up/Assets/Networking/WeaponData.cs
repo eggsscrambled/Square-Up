@@ -13,10 +13,14 @@ public class WeaponData : ScriptableObject
     public float maxSpreadDegrees = 45;
     public GameObject bulletPrefab;
     public GameObject bulletVisualPrefab;
-    public GameObject muzzleFlashPrefab; // Add this - each weapon gets its own
+    public GameObject muzzleFlashPrefab;
     public int damage = 10;
     public float knockbackForce = 5f;
     public bool isAutomatic = false;
     public float recoilForce = 2f;
     public float bulletLifetime = 5f;
+
+    [Header("Camera Shake")]
+    public float cameraShakeIntensity = 0.1f;
+    public float cameraShakeDuration = 0.1f;
 }

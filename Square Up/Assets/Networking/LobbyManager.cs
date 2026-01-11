@@ -3,7 +3,10 @@ using Fusion.Sockets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -15,20 +18,19 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private GameObject[] spawnPoints;
 
+    public TextMeshProUGUI lobbyIDField;
+
     // Accumulators ensure we don't miss a fast keypress between ticks
     private bool _pickupAccumulator;
     private bool _dashAccumulator;
     private bool _fireAccumulator;
     private bool _reloadAccumulator;
 
-    async void Start()
+    void Start()
     {
-        runner = Instantiate(runnerPrefab);
-        runner.AddCallbacks(this);
-        DontDestroyOnLoad(runner.gameObject);
+        // We no longer Instantiate the runner here. 
+        // We do it on demand in StartHost/StartClient.
         DontDestroyOnLoad(gameObject);
-
-        // Cache spawn points
         RefreshSpawnPoints();
     }
 
@@ -54,41 +56,85 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private Vector3 GetSpawnPosition(int playerIndex)
     {
-        // Refresh spawn points in case scene changed
         if (spawnPoints == null || spawnPoints.Length == 0)
         {
             RefreshSpawnPoints();
         }
 
-        // If we have spawn points, use them
         if (spawnPoints != null && spawnPoints.Length > 0)
         {
             int spawnIndex = playerIndex % spawnPoints.Length;
             return spawnPoints[spawnIndex].transform.position;
         }
 
-        // Fallback to random position if no spawn points
         Debug.LogWarning("Using fallback spawn position - no spawn points available!");
         return new Vector3(UnityEngine.Random.Range(-5f, 5f), 2f, 0f);
+    }
+
+    public async void StartHost()
+    {
+        await StartGame(GameMode.Host);
+    }
+
+    public async void StartClient()
+    {
+        await StartGame(GameMode.Client);
+    }
+
+    private async Task StartGame(GameMode mode)
+    {
+        // 1. If there is an old runner sitting around, destroy it
+        if (runner != null)
+        {
+            Destroy(runner.gameObject);
+        }
+
+        // 2. Create a fresh runner for this specific attempt
+        runner = Instantiate(runnerPrefab);
+        runner.AddCallbacks(this);
+        DontDestroyOnLoad(runner.gameObject);
+
+        var result = await runner.StartGame(new StartGameArgs()
+        {
+            GameMode = mode,
+            SessionName = lobbyIDField.text,
+            SceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>()
+        });
+
+        if (result.Ok)
+        {
+            if (mode == GameMode.Host)
+            {
+                runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
+            }
+            Debug.Log($"Successfully started {mode}");
+        }
+        else
+        {
+            // 3. If it failed (e.g., room already exists), cleanup so the button works again
+            Debug.LogError($"Failed to {mode}: {result.ShutdownReason}");
+
+            // Cleanup the failed runner
+            if (runner != null)
+            {
+                Destroy(runner.gameObject);
+                runner = null;
+            }
+        }
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
         var inputData = new NetworkInputData();
 
-        // 1. Movement Input
         inputData.movementInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
-        // 2. Mouse and Aiming Logic
         if (Camera.main != null)
         {
-            // Get mouse position in world space
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
             inputData.mouseWorldPosition = mousePos;
 
-            // Find the local player to calculate aim direction from the player's center to the mouse
-            // We look for the PlayerData script that has Input Authority (the local client's player)
             PlayerData localPlayer = FindObjectsByType<PlayerData>(FindObjectsSortMode.None)
                 .FirstOrDefault(p => p.Object != null && p.Object.HasInputAuthority);
 
@@ -98,25 +144,16 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             }
         }
 
-        // 3. Map Accumulators to NetworkButtons
-        // Using Set() ensures the button bit is flipped to 'true' if the accumulator was tripped in Update()
         inputData.buttons.Set(MyButtons.Fire, _fireAccumulator);
         inputData.buttons.Set(MyButtons.Pickup, _pickupAccumulator);
         inputData.buttons.Set(MyButtons.Dash, _dashAccumulator);
         inputData.buttons.Set(MyButtons.Reload, _reloadAccumulator);
-
-        // Inside OnInput
         inputData.buttons.Set(MyButtons.Heal, Input.GetKey(KeyCode.Q));
 
-        // 4. Tick Synchronization
-        // Storing the current tick helps with deterministic logic like seed-based spread
         inputData.inputTick = runner.Tick;
 
-        // 5. Send to Fusion Simulation
         input.Set(inputData);
 
-        // 6. Reset Accumulators
-        // IMPORTANT: We clear these so the same button press doesn't "ghost" into the next input call
         _fireAccumulator = false;
         _pickupAccumulator = false;
         _dashAccumulator = false;
@@ -127,7 +164,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner.IsServer)
         {
-            // Get spawn position based on player count
             int playerIndex = spawnedPlayers.Count;
             Vector3 spawnPos = GetSpawnPosition(playerIndex);
 
@@ -136,7 +172,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
             spawnedPlayers.Add(player, networkPlayer);
         }
 
-        // NEW: Initialize PredictedBulletManager when local player joins
         if (player == runner.LocalPlayer && PredictedBulletManager.Instance != null)
         {
             PredictedBulletManager.Instance.SetLocalRunner(runner);
@@ -144,26 +179,31 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    public async void StartHost()
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        var result = await runner.StartGame(new StartGameArgs()
+        if (spawnedPlayers.TryGetValue(player, out var obj))
         {
-            GameMode = GameMode.Host,
-            SessionName = "TestRoom",
-            SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
-        });
-        if (result.Ok) runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
+            runner.Despawn(obj);
+            spawnedPlayers.Remove(player);
+        }
     }
 
-    public async void StartClient() => await runner.StartGame(new StartGameArgs()
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        GameMode = GameMode.Client,
-        SessionName = "TestRoom",
-        SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
-    });
+        Debug.LogWarning($"Runner Shutdown: {shutdownReason}");
+        // Ensure our reference is cleared if the runner dies
+        if (this.runner == runner)
+        {
+            this.runner = null;
+        }
+    }
 
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { if (spawnedPlayers.TryGetValue(player, out var obj)) { runner.Despawn(obj); spawnedPlayers.Remove(player); } }
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+        RefreshSpawnPoints();
+    }
+
+    // Boilerplate implementations
     public void OnConnectedToServer(NetworkRunner runner) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
@@ -175,11 +215,6 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
-    public void OnSceneLoadDone(NetworkRunner runner)
-    {
-        // Refresh spawn points when scene loads
-        RefreshSpawnPoints();
-    }
     public void OnSceneLoadStart(NetworkRunner runner) { }
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }

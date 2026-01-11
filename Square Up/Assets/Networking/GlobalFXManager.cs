@@ -38,7 +38,7 @@ public class GlobalFXManager : NetworkBehaviour
 
         if (prefab != null)
         {
-            GameObject inst = Instantiate(prefab, pos, Quaternion.Euler(0, 0, angle));
+            GameObject inst = Instantiate(prefab, pos, Quaternion.Euler(0, 0, -angle));
             if (type == "blood")
             {
                 foreach (var ps in inst.GetComponentsInChildren<ParticleSystem>())
@@ -47,7 +47,7 @@ public class GlobalFXManager : NetworkBehaviour
                 }
             }
             // Blood/Environment hits usually don't have long sounds, 1.5s is usually safe
-            Destroy(inst, 1.5f);
+            Destroy(inst, 5f);
         }
     }
 

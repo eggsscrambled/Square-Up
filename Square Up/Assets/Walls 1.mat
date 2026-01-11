@@ -55,6 +55,7 @@ Material:
     - _EnableExternalAlpha: 0
     - _GlowIntensity: 3.1
     - _GlowRange: 4
+    - _ManualTime: 0
     - _NoiseScale: 10
     - _RefractionDepth: 0
     - _RefractionStrength: 0.15
@@ -62,6 +63,7 @@ Material:
     - _SheenSpeed: 1.2
     - _SheenTightness: 20
     - _SheenWidth: 8.6
+    - _WaveOffset: 0
     - _WaveScale: 3.18
     - _WaveSpeed: 0.5
     - _ZWrite: 0
