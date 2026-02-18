@@ -11,7 +11,6 @@ public class ButtonAnimator : MonoBehaviour
     [Header("Scale Settings")]
     [SerializeField] private float normalScale = 1f;
     [SerializeField] private float hoverScale = 1.2f;
-    [SerializeField] private float pressScale = 0.95f;
     [SerializeField] private float scaleSpeed = 8f;
 
     private Vector3 targetScale;
@@ -64,7 +63,7 @@ public class ButtonAnimator : MonoBehaviour
     private IEnumerator PressAnimation()
     {
         // Quick press down
-        targetScale = Vector3.one * pressScale;
+        targetScale = Vector3.one * normalScale;
         yield return new WaitForSeconds(0.1f);
 
         // Return to normal or hover state
