@@ -58,8 +58,19 @@ public class GlobalFXManager : NetworkBehaviour
             RPC_PlayMuzzleFlash(pos, rot, weaponIndex);
     }
 
+    /// <summary>Play muzzle flash locally without RPC. Use for instant client feedback when the local player shoots.</summary>
+    public void PlayMuzzleFlashLocal(Vector3 pos, Quaternion rot, int weaponIndex)
+    {
+        SpawnMuzzleFlashInstance(pos, rot, weaponIndex);
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayMuzzleFlash(Vector3 pos, Quaternion rot, int weaponIndex)
+    {
+        SpawnMuzzleFlashInstance(pos, rot, weaponIndex);
+    }
+
+    private void SpawnMuzzleFlashInstance(Vector3 pos, Quaternion rot, int weaponIndex)
     {
         GameObject flashPrefab = null;
 
@@ -75,18 +86,11 @@ public class GlobalFXManager : NetworkBehaviour
         {
             GameObject flash = Instantiate(flashPrefab, pos, rot);
 
-            // --- DYNAMIC LIFETIME CALCULATION ---
             float lifetime = fallbackMuzzleLife;
-
-            // Check if there is an AudioSource on the prefab or its children
             AudioSource audio = flash.GetComponentInChildren<AudioSource>();
             if (audio != null && audio.clip != null)
-            {
-                // Set lifetime to the length of the sound, plus a tiny buffer
                 lifetime = audio.clip.length;
-            }
 
-            // The object will now live until the sound finishes playing
             Destroy(flash, lifetime);
         }
     }

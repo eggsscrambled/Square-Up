@@ -14,6 +14,7 @@ public class NetworkedProjectile : NetworkBehaviour
     [SerializeField] private LayerMask combatLayer;
 
     private TickTimer _ignoreOwnerTimer;
+    private Vector2 _renderPrevPosition;
 
     public void Initialize(WeaponData data, Vector2 velocity, PlayerRef owner, int bulletId)
     {
@@ -34,9 +35,17 @@ public class NetworkedProjectile : NetworkBehaviour
         {
             DynamicMusicManager.Instance.RegisterShot();
         }
+
+        // Client: when the authoritative bullet spawns, remove our predicted bullet so we don't see two bullets
+        if (!Object.HasStateAuthority && PredictedBulletManager.Instance != null)
+        {
+            PredictedBulletManager.Instance.OnNetworkedBulletSpawned(BulletId);
+        }
     }
     public override void FixedUpdateNetwork()
     {
+        _renderPrevPosition = transform.position;
+
         if (LifeTime.Expired(Runner))
         {
             if (Object.HasStateAuthority)
@@ -81,6 +90,14 @@ public class NetworkedProjectile : NetworkBehaviour
         transform.position += (Vector3)movement;
         if (Velocity != Vector2.zero)
             transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg);
+    }
+
+    public override void Render()
+    {
+        Vector2 currentSim = transform.position;
+        float alpha = Runner.LocalAlpha;
+        transform.position = Vector2.Lerp(_renderPrevPosition, currentSim, alpha);
+        _renderPrevPosition = currentSim;
     }
 
     private Color GetPlayerColor(GameObject obj)

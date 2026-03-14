@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 public class WeaponAimController : NetworkBehaviour
@@ -146,6 +146,14 @@ public class WeaponAimController : NetworkBehaviour
         if (Object.HasInputAuthority && CameraEffects.Instance != null)
         {
             CameraEffects.Instance.AddScreenShake(data.cameraShakeIntensity, data.cameraShakeDuration);
+        }
+
+        // Client: instant local muzzle flash so shooting doesn't feel delayed (host still RPCs for others)
+        if (Object.HasInputAuthority && !Object.HasStateAuthority && GlobalFXManager.Instance != null)
+        {
+            Transform origin = _currentWeapon.transform.Find("FireOrigin") ?? _currentWeapon.transform;
+            int weaponIdx = GameManager.Instance != null ? GameManager.Instance.GetWeaponIndex(data) : 0;
+            GlobalFXManager.Instance.PlayMuzzleFlashLocal(origin.position, origin.rotation, weaponIdx);
         }
 
         SpawnBullets(input, data);

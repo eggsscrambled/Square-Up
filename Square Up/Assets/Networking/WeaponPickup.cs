@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 public class WeaponPickup : NetworkBehaviour
@@ -184,7 +184,17 @@ public class WeaponPickup : NetworkBehaviour
 
         if (!Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
         {
-            UpdateWeaponTransform();
+            // Local player's weapon: use mouse position for instant aim feedback (no RTT lag)
+            Vector2 displayAim = AimDirection;
+            if (Owner == Runner.LocalPlayer && Camera.main != null)
+            {
+                Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mouseWorld.z = 0f;
+                Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
+                if (localAim.magnitude > 0.1f)
+                    displayAim = localAim;
+            }
+            UpdateWeaponTransform(displayAim);
         }
 
         if (!IsPickedUp)
@@ -195,7 +205,15 @@ public class WeaponPickup : NetworkBehaviour
 
         if (IsPickedUp && flipSpriteWhenAimingLeft && spriteRenderer != null)
         {
-            bool shouldFlip = (AimDirection.x < 0) ^ flipShouldFlip;
+            Vector2 flipAim = AimDirection;
+            if (Owner == Runner.LocalPlayer && Camera.main != null)
+            {
+                Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mouseWorld.z = 0f;
+                Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
+                if (localAim.magnitude > 0.1f) flipAim = localAim;
+            }
+            bool shouldFlip = (flipAim.x < 0) ^ flipShouldFlip;
             spriteRenderer.flipY = shouldFlip;
             if (fireOrigin != null)
             {
@@ -231,10 +249,15 @@ public class WeaponPickup : NetworkBehaviour
 
     private void UpdateWeaponTransform()
     {
-        if (AimDirection.magnitude < 0.1f) return;
+        UpdateWeaponTransform(AimDirection);
+    }
+
+    private void UpdateWeaponTransform(Vector2 aimDirection)
+    {
+        if (aimDirection.magnitude < 0.1f) return;
         Vector3 target = ownerTransform.position + Vector3.up * verticalOffset;
-        transform.position = target + (Vector3)(AimDirection.normalized * orbitRadius);
-        if (rotateWithAim) transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(AimDirection.y, AimDirection.x) * Mathf.Rad2Deg);
+        transform.position = target + (Vector3)(aimDirection.normalized * orbitRadius);
+        if (rotateWithAim) transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg);
     }
 
     public void UpdateAimDirection(Vector2 aim) => AimDirection = aim;

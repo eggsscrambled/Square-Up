@@ -21,6 +21,7 @@ public class PlayerController : NetworkBehaviour
 
     private Rigidbody2D _rb;
     private PlayerData _playerData;
+    private Vector2 _renderPrevPosition;
 
     public float GetMoveSpeed() => moveSpeed;
 
@@ -38,6 +39,10 @@ public class PlayerController : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // Store position at start of tick for interpolation (remote players only)
+        if (!Object.HasInputAuthority)
+            _renderPrevPosition = _rb.position;
+
         if (_playerData != null && _playerData.Dead)
         {
             _rb.linearVelocity = Vector2.zero;
@@ -99,6 +104,18 @@ public class PlayerController : NetworkBehaviour
     {
         if (Object.HasStateAuthority || Object.HasInputAuthority)
             RecoilVelocity += recoilForce;
+    }
+
+    public override void Render()
+    {
+        // Interpolate other players' positions between ticks for smoother movement (display only; don't touch _rb)
+        if (!Object.HasInputAuthority && Runner != null)
+        {
+            Vector2 currentSim = _rb.position;
+            float alpha = Runner.LocalAlpha;
+            transform.position = Vector2.Lerp(_renderPrevPosition, currentSim, alpha);
+            _renderPrevPosition = currentSim;
+        }
     }
 
     private void LateUpdate()
