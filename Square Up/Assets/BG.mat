@@ -62,6 +62,7 @@ Material:
     - _SheenSpeed: 1.2
     - _SheenTightness: 1
     - _SheenWidth: 8.6
+    - _WaveOffset: 0
     - _WaveScale: 1.78
     - _WaveSpeed: -0.1
     - _ZWrite: 0

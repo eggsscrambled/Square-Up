@@ -14,11 +14,13 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private NetworkObject playerPrefab;
     [SerializeField] private int gameSceneBuildIndex = 1;
 
+
     private NetworkRunner runner;
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private GameObject[] spawnPoints;
 
-    public TextMeshProUGUI lobbyIDField;
+    public TMP_Text lobbyIDField;
+    public TMP_Text LobbyNameDisplay;
 
     // Accumulators ensure we don't miss a fast keypress between ticks
     private bool _pickupAccumulator;
@@ -36,13 +38,18 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
     void Update()
     {
+        LobbyNameDisplay.text = lobbyIDField.text;
+
         if (runner == null || !runner.IsRunning) return;
 
         // Collect raw Unity input
         if (Input.GetButton("Fire1")) _fireAccumulator = true;
         if (Input.GetKeyDown(KeyCode.E)) _pickupAccumulator = true;
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.Space)) _dashAccumulator = true;
+
         if (Input.GetKeyDown(KeyCode.R)) _reloadAccumulator = true;
+
+
     }
 
     private void RefreshSpawnPoints()

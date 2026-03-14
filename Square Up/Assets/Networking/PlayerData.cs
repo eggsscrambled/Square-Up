@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Fusion;
 using UnityEngine.UI;
+using Unity.VisualScripting.Antlr3.Runtime;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -28,21 +29,24 @@ public class PlayerData : NetworkBehaviour
 
     private static readonly Color[] availableColors = new Color[]
     {
-        new Color(1f, 0.459f, 0.459f), //red
-        new Color(1f, 0.671f, 0.478f), //orange
-        new Color(1f, 0.984f, 0.478f), //yellow
-        new Color(0.867f, 1f, 0.478f), //tennis ball
-        new Color(0.643f, 1f, 0.478f), //lime
-        new Color(0.439f, 1f, 0.478f), //green
-        new Color(0.439f, 1f, 0.804f), //cyan
-        new Color(0.439f, 0.988f, 1f), //light blue
-        new Color(0.439f, 0.733f, 1f), //blue
-        new Color(0.439f, 0.525f, 1f), //dark blue
-        new Color(0.486f, 0.439f, 1f), //purple
-        new Color(0.655f, 0.439f, 1f), //indigo
-        new Color(0.808f, 0.439f, 1f), //pink
-        new Color(0.969f, 0.439f, 1f), //sexy pink
-        new Color(1f, 0.439f, 0.745f), //barbie pink
+        new Color(0.3647059f, 0.6901961f, 0.9803922f), //Classic Blue
+        new Color(1f, 0.4f, 0.4f), //Pastel Red
+        new Color(0.3019608f, 1f, 0.427367f), //Spring Green
+        new Color(1f, 0.9822813f, 0.3915094f), //Sun Beam
+        new Color(0.6973126f, 0.3443396f, 1f), //Melific Purple
+        new Color(0.3820755f, 1f, 0.8688952f), //Ocean Teal
+        new Color(0.3867925f, 0f, 0.02702537f), //Blood Moon
+        new Color(0.7090764f, 1f, 0.4575472f), //Tennis Ball
+        new Color(1f, 0.7550803f, 0.1462264f), //Heat Stroke
+        new Color(0.1006461f, 0.06065325f, 0.2735849f), //Midnight
+        new Color(1f, 0.1273585f, 0.5824191f), //Sexy
+        new Color(0.1960784f, 0.1960784f, 0.1960784f), //Assasin
+        new Color(0.1372549f, 0.4039216f, 0.06666667f), //Forest Dweller
+        new Color(1f, 0.7019608f, 0.8784314f), //Baddie
+        new Color(1f, 0.572549f, 0.345098f), //Coral Reef
+        new Color(0.3098039f, 0.2078432f, 0.1960784f), //Clay
+        new Color(0.6235294f, 0.2705882f, 0f), //Topaz
+        new Color(0.1333333f, 0f, 0.4627451f), //Determination
     };
 
     private void Awake()
@@ -58,7 +62,7 @@ public class PlayerData : NetworkBehaviour
             Health = maxHealth;
             Dead = false;
             WeaponIndex = 0;
-            PlayerColorIndex = Random.Range(0, availableColors.Length);
+            PlayerColorIndex = PlayerPrefs.GetInt("PlayerColor");
         }
         TryAssignTagAndLayer();
         if (hitCollision != null) hitCollision.SetActive(!Object.HasInputAuthority);

@@ -50,9 +50,9 @@ public class ButtonAnimator : MonoBehaviour
         targetScale = Vector3.one * normalScale;
     }
 
-    public void OnPressed()
-    {
-        StartCoroutine(PressAnimation());
+    public void OnPressed() {
+
+        targetScale = Vector3.one * normalScale;
 
         if (audioSource && pressSound)
         {
@@ -60,13 +60,5 @@ public class ButtonAnimator : MonoBehaviour
         }
     }
 
-    private IEnumerator PressAnimation()
-    {
-        // Quick press down
-        targetScale = Vector3.one * normalScale;
-        yield return new WaitForSeconds(0.1f);
 
-        // Return to normal or hover state
-        targetScale = Vector3.one * (isHovering ? hoverScale : normalScale);
-    }
 }

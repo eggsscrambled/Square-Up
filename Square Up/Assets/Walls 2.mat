@@ -21,15 +21,15 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Walls 2
-  m_Shader: {fileID: -6465566751694194690, guid: 9d9cfcb67ed986e4e97a4c9c6ca8623c, type: 3}
-  m_Parent: {fileID: 0}
+  m_Shader: {fileID: 4800000, guid: 16b6c8112337e684e92915640a75b58a, type: 3}
+  m_Parent: {fileID: 2100000, guid: ab611ebf6c6ec4b43ac51ddcb647faee, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 1950
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
@@ -37,54 +37,18 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _AlphaTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MaskTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _NormalMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_Lightmaps:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_LightmapsInd:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_ShadowMasks:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _A: 0.025
-    - _Ampl: 1
-    - _AmplX: 10
-    - _AmplY: 1
-    - _B: 0.5
-    - _C: 20
-    - _ColourChangeSpeed: 1
-    - _Density: 25
-    - _EnableExternalAlpha: 0
-    - _Freq: 0.5
-    - _FreqX: 0.4
-    - _FreqY: 0.01
-    - _QueueControl: 0
-    - _QueueOffset: -50
-    - _ZWrite: 0
+    - _Distortion: 0.05
+    - _SheenIntensity: 2.5
+    - _SheenTightness: 10
+    - _WaveScale: 4
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Ting: {r: 0.09210526, g: 0.06315789, b: 0.1, a: 1}
+    - _BaseDarkness: {r: 0.02, g: 0.02, b: 0.02, a: 1}
+    - _SheenColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
