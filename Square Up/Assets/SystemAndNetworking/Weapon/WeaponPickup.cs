@@ -139,7 +139,8 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SyncState(bool pickedUp)
     {
-        if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
+        // Always show weapon sprite (held or on ground) so clients see others holding guns
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
         if (!pickedUp)
         {
             if (spriteRenderer != null) spriteRenderer.flipY = false;
@@ -150,7 +151,7 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SyncDrop(Vector3 dropPosition, bool pickedUp)
     {
-        if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
         if (spriteRenderer != null) spriteRenderer.flipY = false;
         if (fireOrigin != null) fireOrigin.localPosition = originalFireOriginLocalPos;
 

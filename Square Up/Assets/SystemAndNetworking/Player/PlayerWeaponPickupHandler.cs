@@ -30,8 +30,11 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
                 Vector2 aimDir = input.aimDirection.magnitude > 0.1f ? input.aimDirection.normalized : (Vector2)transform.up;
                 Vector2 throwVelocity = (aimDir + Vector2.up * 0.4f).normalized * throwForce;
 
-                // 3. Send the request to the server
-                RPC_RequestInteraction(throwVelocity);
+                // 3. Host runs server logic directly; client sends RPC (host cannot send InputAuthority->StateAuthority RPC to self)
+                if (Object.HasStateAuthority)
+                    ExecutePickupOrDrop(throwVelocity);
+                else
+                    RPC_RequestInteraction(throwVelocity);
             }
         }
     }
@@ -39,10 +42,14 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_RequestInteraction(Vector2 throwVelocity)
     {
+        ExecutePickupOrDrop(throwVelocity);
+    }
+
+    private void ExecutePickupOrDrop(Vector2 throwVelocity)
+    {
         WeaponPickup closestWeapon = null;
         float closestDistance = float.MaxValue;
 
-        // Find the nearest weapon on the server
         WeaponPickup[] allWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
         foreach (var weapon in allWeapons)
         {
@@ -55,16 +62,13 @@ public class PlayerWeaponPickupHandler : NetworkBehaviour
             }
         }
 
-        // The Server makes the final call
         if (closestWeapon != null)
         {
-            // SWAP logic
             HandleServerDrop(throwVelocity);
             closestWeapon.ServerExecutePickup(Object.InputAuthority);
         }
         else
         {
-            // PURE DROP logic
             HandleServerDrop(throwVelocity);
         }
     }

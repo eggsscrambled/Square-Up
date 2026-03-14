@@ -52,6 +52,29 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
     }
 
+    private void LogFusionConfig(NetworkRunner r)
+    {
+        if (r == null) return;
+        int tickRate = r.TickRate;
+        float deltaTime = r.DeltaTime;
+        try
+        {
+            if (r.Config != null)
+            {
+                var c = r.Config;
+                Debug.Log($"[Fusion Config] TickRate={tickRate} Hz, DeltaTime={deltaTime:F4}s | " +
+                    $"LagComp.Enabled={c.LagCompensation.Enabled}, BufferMs={c.LagCompensation.HitboxBufferLengthInMs} | " +
+                    $"ReplicationFeatures={c.Simulation.ReplicationFeatures}, ConnectionTimeout={c.Network.ConnectionTimeout}");
+            }
+            else
+                Debug.Log($"[Fusion Config] TickRate={tickRate} Hz, DeltaTime={deltaTime:F4}s");
+        }
+        catch
+        {
+            Debug.Log($"[Fusion Config] TickRate={tickRate} Hz, DeltaTime={deltaTime:F4}s (full config not available)");
+        }
+    }
+
     private void RefreshSpawnPoints()
     {
         spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoints");
@@ -110,6 +133,7 @@ public class LobbyManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (result.Ok)
         {
+            LogFusionConfig(runner);
             if (mode == GameMode.Host)
             {
                 runner.LoadScene(SceneRef.FromIndex(gameSceneBuildIndex));
