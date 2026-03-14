@@ -3,6 +3,10 @@ using Fusion;
 
 public class WeaponPickup : NetworkBehaviour
 {
+    // =========================================================
+    //  INSPECTOR
+    // =========================================================
+
     [Header("Weapon Settings")]
     [SerializeField] private WeaponData weaponData;
     [SerializeField] private float pickupRadius = 1.5f;
@@ -27,36 +31,54 @@ public class WeaponPickup : NetworkBehaviour
     [SerializeField] private AudioClip reloadMidSound;
     [SerializeField] private AudioClip reloadEndSound;
 
+    // =========================================================
+    //  NETWORKED STATE
+    // =========================================================
+
     [Networked] private NetworkBool IsPickedUp { get; set; }
     [Networked] private PlayerRef Owner { get; set; }
     [Networked] private Vector2 AimDirection { get; set; }
     [Networked] private NetworkId OwnerId { get; set; }
     [Networked] public int CurrentAmmo { get; set; }
-
-    // Using an int trigger + ChangeDetector is more reliable than RPCs for sounds
+    [Networked] private TickTimer PickupCooldown { get; set; }
     [Networked] private int ReloadSoundTrigger { get; set; }
+
+    // =========================================================
+    //  PRIVATE FIELDS
+    // =========================================================
+
     private ChangeDetector _changeDetector;
 
     private Rigidbody2D rb;
     private Collider2D col;
     private NetworkTransform networkTransform;
-    private Vector3 startPosition;
-    private float floatTimer;
     private GameManager gameManager;
+
     private Transform originalParent;
     private Transform ownerTransform;
     private Transform fireOrigin;
+
+    private Vector3 startPosition;
     private Vector3 originalFireOriginLocalPos;
+    private float floatTimer;
+
+    // =========================================================
+    //  UNITY / FUSION LIFECYCLE
+    // =========================================================
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
         networkTransform = GetComponent<NetworkTransform>();
-        if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
         originalParent = transform.parent;
+
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+
         fireOrigin = transform.Find("FireOrigin");
-        if (fireOrigin != null) originalFireOriginLocalPos = fireOrigin.localPosition;
+        if (fireOrigin != null)
+            originalFireOriginLocalPos = fireOrigin.localPosition;
     }
 
     public override void Spawned()
@@ -80,9 +102,29 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
+    public override void FixedUpdateNetwork()
+    {
+        if (Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
+            UpdateWeaponTransform();
+    }
+
+    public override void Render()
+    {
+        DetectAndPlayReloadSounds();
+        ResolveOwnerReference();
+        RenderHeldWeapon();
+        RenderGroundWeapon();
+        RenderSpriteFlip();
+    }
+
+    // =========================================================
+    //  PUBLIC API — PICKUP / DROP
+    // =========================================================
+
     public void ServerExecutePickup(PlayerRef player)
     {
         if (!Object.HasStateAuthority || IsPickedUp) return;
+        if (!PickupCooldown.ExpiredOrNotRunning(Runner)) return;
 
         NetworkObject pObj = Runner.GetPlayerObject(player);
         if (pObj == null) return;
@@ -116,6 +158,8 @@ public class WeaponPickup : NetworkBehaviour
         Owner = PlayerRef.None;
         OwnerId = default;
         ownerTransform = null;
+
+        PickupCooldown = TickTimer.CreateFromSeconds(Runner, 0.5f);
         transform.position = pos;
         startPosition = pos;
         transform.SetParent(originalParent);
@@ -136,10 +180,38 @@ public class WeaponPickup : NetworkBehaviour
         RPC_SyncDrop(pos, false);
     }
 
+    // =========================================================
+    //  PUBLIC ACCESSORS
+    // =========================================================
+
+    public void UpdateAimDirection(Vector2 aim) => AimDirection = aim;
+    public bool GetIsPickedUp() => IsPickedUp;
+    public WeaponData GetWeaponData() => weaponData;
+    public int GetCurrentAmmo() => CurrentAmmo;
+    public void SetCurrentAmmo(int ammo) => CurrentAmmo = ammo;
+
+    public Vector3 GetWeaponHoldPosition() =>
+        ownerTransform != null
+            ? ownerTransform.position + Vector3.up * verticalOffset
+            : transform.position;
+
+    // =========================================================
+    //  RELOAD SOUND TRIGGERS
+    // =========================================================
+
+    public void PlayReloadStartSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 1; }
+    public void PlayReloadMidSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 2; }
+    public void PlayReloadEndSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 3; }
+
+    // =========================================================
+    //  RPCS
+    // =========================================================
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SyncState(bool pickedUp)
     {
-        if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
+
         if (!pickedUp)
         {
             if (spriteRenderer != null) spriteRenderer.flipY = false;
@@ -150,7 +222,7 @@ public class WeaponPickup : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SyncDrop(Vector3 dropPosition, bool pickedUp)
     {
-        if (spriteRenderer != null && hideWhenHeld) spriteRenderer.enabled = !pickedUp;
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
         if (spriteRenderer != null) spriteRenderer.flipY = false;
         if (fireOrigin != null) fireOrigin.localPosition = originalFireOriginLocalPos;
 
@@ -161,81 +233,73 @@ public class WeaponPickup : NetworkBehaviour
         }
     }
 
-    public override void FixedUpdateNetwork()
-    {
-        if (Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
-        {
-            UpdateWeaponTransform();
-        }
-    }
+    // =========================================================
+    //  PRIVATE — RENDER HELPERS
+    // =========================================================
 
-    public override void Render()
+    private void DetectAndPlayReloadSounds()
     {
-        // Detect changes in the reload trigger to play sounds
         foreach (var change in _changeDetector.DetectChanges(this))
         {
             if (change == nameof(ReloadSoundTrigger))
-            {
                 PlayLocalSound(ReloadSoundTrigger);
-            }
-        }
-
-        ResolveOwnerReference();
-
-        if (!Object.HasStateAuthority && IsPickedUp && ownerTransform != null)
-        {
-            // Local player's weapon: use mouse position for instant aim feedback (no RTT lag)
-            Vector2 displayAim = AimDirection;
-            if (Owner == Runner.LocalPlayer && Camera.main != null)
-            {
-                Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                mouseWorld.z = 0f;
-                Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
-                if (localAim.magnitude > 0.1f)
-                    displayAim = localAim;
-            }
-            UpdateWeaponTransform(displayAim);
-        }
-
-        if (!IsPickedUp)
-        {
-            floatTimer += Time.deltaTime * floatSpeed;
-            transform.position = startPosition + Vector3.up * (Mathf.Sin(floatTimer) * floatAmount);
-        }
-
-        if (IsPickedUp && flipSpriteWhenAimingLeft && spriteRenderer != null)
-        {
-            Vector2 flipAim = AimDirection;
-            if (Owner == Runner.LocalPlayer && Camera.main != null)
-            {
-                Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                mouseWorld.z = 0f;
-                Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
-                if (localAim.magnitude > 0.1f) flipAim = localAim;
-            }
-            bool shouldFlip = (flipAim.x < 0) ^ flipShouldFlip;
-            spriteRenderer.flipY = shouldFlip;
-            if (fireOrigin != null)
-            {
-                Vector3 fPos = fireOrigin.localPosition;
-                fPos.y = shouldFlip ? -originalFireOriginLocalPos.y : originalFireOriginLocalPos.y;
-                fireOrigin.localPosition = fPos;
-            }
         }
     }
 
-    private void PlayLocalSound(int type)
+    private void RenderHeldWeapon()
     {
-        if (audioSource == null) return;
-        AudioClip clip = type switch
+        if (!IsPickedUp || ownerTransform == null) return;
+
+        Vector2 displayAim = AimDirection;
+
+        if (Owner == Runner.LocalPlayer && Camera.main != null)
         {
-            1 => reloadStartSound,
-            2 => reloadMidSound,
-            3 => reloadEndSound,
-            _ => null
-        };
-        if (clip != null) audioSource.PlayOneShot(clip);
+            Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorld.z = 0f;
+            Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
+            if (localAim.magnitude > 0.1f) displayAim = localAim;
+        }
+
+        if (!Object.HasStateAuthority)
+            UpdateWeaponTransform(displayAim);
     }
+
+    private void RenderGroundWeapon()
+    {
+        if (IsPickedUp) return;
+
+        floatTimer += Time.deltaTime * floatSpeed;
+        transform.position = startPosition + Vector3.up * (Mathf.Sin(floatTimer) * floatAmount);
+    }
+
+    private void RenderSpriteFlip()
+    {
+        if (!IsPickedUp || !flipSpriteWhenAimingLeft || spriteRenderer == null) return;
+
+        Vector2 flipAim = AimDirection;
+
+        if (Owner == Runner.LocalPlayer && Camera.main != null)
+        {
+            Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorld.z = 0f;
+            Vector2 localAim = ((Vector2)mouseWorld - (Vector2)GetWeaponHoldPosition()).normalized;
+            if (localAim.magnitude > 0.1f) flipAim = localAim;
+        }
+
+        bool shouldFlip = (flipAim.x < 0) ^ flipShouldFlip;
+        spriteRenderer.flipY = shouldFlip;
+
+        if (fireOrigin != null)
+        {
+            Vector3 fPos = fireOrigin.localPosition;
+            fPos.y = shouldFlip ? -originalFireOriginLocalPos.y : originalFireOriginLocalPos.y;
+            fireOrigin.localPosition = fPos;
+        }
+    }
+
+    // =========================================================
+    //  PRIVATE — TRANSFORM / REFERENCE HELPERS
+    // =========================================================
 
     private void ResolveOwnerReference()
     {
@@ -244,31 +308,37 @@ public class WeaponPickup : NetworkBehaviour
             if (Runner.TryFindObject(OwnerId, out NetworkObject ownerObj))
                 ownerTransform = ownerObj.transform;
         }
-        else if (OwnerId == default) ownerTransform = null;
+        else if (OwnerId == default)
+        {
+            ownerTransform = null;
+        }
     }
 
-    private void UpdateWeaponTransform()
-    {
-        UpdateWeaponTransform(AimDirection);
-    }
-
+    private void UpdateWeaponTransform() => UpdateWeaponTransform(AimDirection);
     private void UpdateWeaponTransform(Vector2 aimDirection)
     {
         if (aimDirection.magnitude < 0.1f) return;
+
         Vector3 target = ownerTransform.position + Vector3.up * verticalOffset;
         transform.position = target + (Vector3)(aimDirection.normalized * orbitRadius);
-        if (rotateWithAim) transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg);
+
+        if (rotateWithAim)
+            transform.rotation = Quaternion.Euler(0, 0,
+                Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg);
     }
 
-    public void UpdateAimDirection(Vector2 aim) => AimDirection = aim;
-    public bool GetIsPickedUp() => IsPickedUp;
-    public WeaponData GetWeaponData() => weaponData;
-    public Vector3 GetWeaponHoldPosition() => ownerTransform != null ? ownerTransform.position + Vector3.up * verticalOffset : transform.position;
-    public int GetCurrentAmmo() => CurrentAmmo;
-    public void SetCurrentAmmo(int ammo) => CurrentAmmo = ammo;
+    private void PlayLocalSound(int type)
+    {
+        if (audioSource == null) return;
 
-    // Trigger methods updated to use Networked Int
-    public void PlayReloadStartSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 1; }
-    public void PlayReloadMidSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 2; }
-    public void PlayReloadEndSound() { if (Object.HasStateAuthority) ReloadSoundTrigger = 3; }
+        AudioClip clip = type switch
+        {
+            1 => reloadStartSound,
+            2 => reloadMidSound,
+            3 => reloadEndSound,
+            _ => null
+        };
+
+        if (clip != null) audioSource.PlayOneShot(clip);
+    }
 }
