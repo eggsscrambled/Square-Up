@@ -13,7 +13,7 @@ public class NetworkedProjectile : NetworkBehaviour
     [SerializeField] private LayerMask environmentLayer;
     [SerializeField] private LayerMask combatLayer;
 
-    private TickTimer _ignoreOwnerTimer;
+    [Networked] private TickTimer _ignoreOwnerTimer { get; set; }
 
     public void Initialize(WeaponData data, Vector2 velocity, PlayerRef owner, int bulletId)
     {

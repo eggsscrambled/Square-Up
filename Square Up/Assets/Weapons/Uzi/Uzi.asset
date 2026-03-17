@@ -26,7 +26,7 @@ MonoBehaviour:
   damage: 11
   knockbackForce: 5
   isAutomatic: 1
-  recoilForce: 15
+  recoilForce: 6.5
   bulletLifetime: 0.35
   cameraShakeIntensity: 0.4
   cameraShakeDuration: 0.2

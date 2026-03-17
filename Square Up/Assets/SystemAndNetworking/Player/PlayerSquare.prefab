@@ -469,7 +469,7 @@ MonoBehaviour:
   dashSpeedMultiplier: 2.5
   dashDuration: 1
   dashCooldown: 2.5
-  recoilDecaySpeed: 15
+  recoilDecaySpeed: 133
 --- !u!50 &7973437044663750698
 Rigidbody2D:
   serializedVersion: 5

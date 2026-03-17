@@ -39,7 +39,6 @@ public class PlayerController : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Store position at start of tick for interpolation (remote players only)
         if (!Object.HasInputAuthority)
             _renderPrevPosition = _rb.position;
 
@@ -55,16 +54,11 @@ public class PlayerController : NetworkBehaviour
             bool isDashing = !DashTimer.ExpiredOrNotRunning(Runner);
             IsDashing = isDashing;
 
-            // Calculate current effective move speed
             float currentMoveSpeed = isDashing ? moveSpeed * dashSpeedMultiplier : moveSpeed;
 
-            // --- HEALING SLOWDOWN ---
             if (_playerData.IsHealing)
-            {
                 currentMoveSpeed *= healingSpeedMultiplier;
-            }
 
-            // Check for dash input (Only dash if NOT healing)
             if (enableDash && !_playerData.IsHealing &&
                 input.buttons.IsSet(MyButtons.Dash) &&
                 DashCooldownTimer.ExpiredOrNotRunning(Runner) &&
@@ -87,7 +81,7 @@ public class PlayerController : NetworkBehaviour
                 currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, friction * Runner.DeltaTime);
             }
 
-            RecoilVelocity = Vector2.Lerp(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
+            RecoilVelocity = Vector2.MoveTowards(RecoilVelocity, Vector2.zero, recoilDecaySpeed * Runner.DeltaTime);
             Velocity = currentVelocity;
             _rb.linearVelocity = Velocity + RecoilVelocity;
         }
@@ -102,19 +96,17 @@ public class PlayerController : NetworkBehaviour
 
     public void ApplyRecoil(Vector2 recoilForce)
     {
-        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        if (Object.HasStateAuthority)
             RecoilVelocity += recoilForce;
     }
 
     public override void Render()
     {
-        // Interpolate other players' positions between ticks for smoother movement (display only; don't touch _rb)
         if (!Object.HasInputAuthority && Runner != null)
         {
             Vector2 currentSim = _rb.position;
             float alpha = Runner.LocalAlpha;
             transform.position = Vector2.Lerp(_renderPrevPosition, currentSim, alpha);
-            _renderPrevPosition = currentSim;
         }
     }
 

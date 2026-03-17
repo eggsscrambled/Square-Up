@@ -248,24 +248,25 @@ public class WeaponAimController : NetworkBehaviour
         for (int i = 0; i < data.bulletAmount; i++)
         {
             int bulletId = nextBulletId + i;
-            Random.InitState(input.inputTick + i);
-            Vector2 spreadDir = CalculateSpreadDirection(baseAimDir, data.spreadAmount, data.maxSpreadDegrees);
+            int seed = input.inputTick + i;
+            Vector2 spreadDir = CalculateSpreadDirection(baseAimDir, data.spreadAmount, data.maxSpreadDegrees, seed);
             Quaternion spawnRot = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
-            // Predicted bullet for the local client (no authority).
+            Vector2 capturedSpreadDir = spreadDir;
+            int capturedBulletId = bulletId;
+
             if (Object.HasInputAuthority && Runner.IsForward && !Object.HasStateAuthority)
             {
                 GameObject pred = Instantiate(data.bulletVisualPrefab, spawnPos, spawnRot);
                 pred.GetComponent<PredictedBullet>()?.Initialize(
-                    spreadDir * data.bulletSpeed, data.bulletLifetime, bulletId);
+                    capturedSpreadDir * data.bulletSpeed, data.bulletLifetime, capturedBulletId);
             }
 
-            // Authoritative networked bullet.
             if (Object.HasStateAuthority)
             {
                 Runner.Spawn(data.bulletPrefab, spawnPos, spawnRot, Object.InputAuthority,
                     (runner, obj) => obj.GetComponent<NetworkedProjectile>().Initialize(
-                        data, spreadDir * data.bulletSpeed, Object.InputAuthority, bulletId));
+                        data, capturedSpreadDir * data.bulletSpeed, Object.InputAuthority, capturedBulletId));
             }
         }
 
@@ -290,9 +291,10 @@ public class WeaponAimController : NetworkBehaviour
         }
     }
 
-    private Vector2 CalculateSpreadDirection(Vector2 baseDir, float spread, float maxDegrees)
+    private Vector2 CalculateSpreadDirection(Vector2 baseDir, float spread, float maxDegrees, int seed)
     {
-        float randomAngle = Random.Range(-spread, spread);
+        System.Random rng = new System.Random(seed);
+        float randomAngle = (float)(rng.NextDouble() * 2.0 - 1.0) * spread;
         float angle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg + randomAngle;
         return new Vector2(
             Mathf.Cos(angle * Mathf.Deg2Rad),

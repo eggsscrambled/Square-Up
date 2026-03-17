@@ -62,6 +62,8 @@ public class WeaponPickup : NetworkBehaviour
     private Vector3 originalFireOriginLocalPos;
     private float floatTimer;
 
+    public bool PickupCooldownExpired(NetworkRunner runner) => PickupCooldown.ExpiredOrNotRunning(runner);
+
     // =========================================================
     //  UNITY / FUSION LIFECYCLE
     // =========================================================
