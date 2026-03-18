@@ -184,7 +184,14 @@ public class GameManager : NetworkBehaviour
         PlayerData p2 = GetPlayerData(1);
         if (p1 != null && p2 != null && p1.PlayerColorIndex == p2.PlayerColorIndex)
         {
-            p2.PlayerColorIndex = (p2.PlayerColorIndex + 1) % 10;
+            // Find the next index that doesn't match p1
+            int newIndex = p2.PlayerColorIndex;
+            do
+            {
+                newIndex = (newIndex + 1) % 18; // use your actual color count
+            } while (newIndex == p1.PlayerColorIndex);
+
+            p2.PlayerColorIndex = newIndex;
         }
     }
 
