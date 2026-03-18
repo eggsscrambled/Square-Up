@@ -9929,6 +9929,7 @@ GameObject:
   - component: {fileID: 2499204975678833328}
   - component: {fileID: 4149457408113661609}
   - component: {fileID: 5510447686741037945}
+  - component: {fileID: 8575402812187839824}
   m_Layer: 6
   m_Name: What Goes Up
   m_TagString: Untagged
@@ -10013,6 +10014,23 @@ MonoBehaviour:
   - {fileID: 4149457408113661609}
   - {fileID: 8018340001433181676}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &8575402812187839824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5166821595716459216}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8b19311b489b784e96c7d073838a689, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapWeaponPoolDataHolder
+  mapWeaponPools:
+  - {fileID: 11400000, guid: 5833cc28d07cf0f48b07200011fb391c, type: 2}
+  - {fileID: 11400000, guid: fdaa54832b3912f4c83307194cbbcc8e, type: 2}
+  - {fileID: 11400000, guid: 8332aef0d4a90c145a0ba4a1717f5ac2, type: 2}
+  - {fileID: 11400000, guid: 4697776783bc2dc4e9b97801143eaecd, type: 2}
 --- !u!1 &5837817985926779232
 GameObject:
   m_ObjectHideFlags: 0
