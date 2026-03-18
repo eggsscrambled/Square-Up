@@ -245,11 +245,13 @@ public class WeaponAimController : NetworkBehaviour
         if (DynamicMusicManager.Instance != null)
             DynamicMusicManager.Instance.RegisterShot();
 
+        int seed = input.inputTick * 7919 + nextBulletId;
+        System.Random rng = new System.Random(seed);
+
         for (int i = 0; i < data.bulletAmount; i++)
         {
             int bulletId = nextBulletId + i;
-            int seed = input.inputTick + i;
-            Vector2 spreadDir = CalculateSpreadDirection(baseAimDir, data.spreadAmount, data.maxSpreadDegrees, seed);
+            Vector2 spreadDir = CalculateSpreadDirection(baseAimDir, data.spreadAmount, rng);
             Quaternion spawnRot = Quaternion.LookRotation(Vector3.forward, spreadDir);
 
             Vector2 capturedSpreadDir = spreadDir;
@@ -291,10 +293,14 @@ public class WeaponAimController : NetworkBehaviour
         }
     }
 
-    private Vector2 CalculateSpreadDirection(Vector2 baseDir, float spread, float maxDegrees, int seed)
+    private Vector2 CalculateSpreadDirection(Vector2 baseDir, float spread, System.Random rng)
     {
-        System.Random rng = new System.Random(seed);
-        float randomAngle = (float)(rng.NextDouble() * 2.0 - 1.0) * spread;
+        double u1 = 1.0 - rng.NextDouble();
+        double u2 = 1.0 - rng.NextDouble();
+        double gaussian = System.Math.Sqrt(-2.0 * System.Math.Log(u1))
+                        * System.Math.Sin(2.0 * System.Math.PI * u2);
+
+        float randomAngle = (float)(gaussian * spread * 0.5f);
         float angle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg + randomAngle;
         return new Vector2(
             Mathf.Cos(angle * Mathf.Deg2Rad),
