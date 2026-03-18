@@ -8,7 +8,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float acceleration = 60f;
     [SerializeField] private float friction = 40f;
-    [SerializeField] private float healingSpeedMultiplier = 0.35f; // SLOW DOWN
+    [SerializeField] private float healingSpeedMultiplier = 0.35f;
 
     [Header("Dash")]
     [SerializeField] private bool enableDash = false;
@@ -21,7 +21,6 @@ public class PlayerController : NetworkBehaviour
 
     private Rigidbody2D _rb;
     private PlayerData _playerData;
-    private Vector2 _renderPrevPosition;
 
     public float GetMoveSpeed() => moveSpeed;
 
@@ -39,9 +38,6 @@ public class PlayerController : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!Object.HasInputAuthority)
-            _renderPrevPosition = _rb.position;
-
         if (_playerData != null && _playerData.Dead)
         {
             _rb.linearVelocity = Vector2.zero;
@@ -100,19 +96,8 @@ public class PlayerController : NetworkBehaviour
             RecoilVelocity += recoilForce;
     }
 
-    public override void Render()
-    {
-        if (!Object.HasInputAuthority && Runner != null)
-        {
-            Vector2 currentSim = _rb.position;
-            float alpha = Runner.LocalAlpha;
-            transform.position = Vector2.Lerp(_renderPrevPosition, currentSim, alpha);
-        }
-    }
-
     private void LateUpdate()
     {
-        // Only update camera for local player
         if (Object.HasInputAuthority && CameraEffects.Instance != null)
         {
             CameraEffects.Instance.UpdatePlayerData(transform.position, _rb.linearVelocity);
