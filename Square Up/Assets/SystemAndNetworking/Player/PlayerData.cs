@@ -62,8 +62,24 @@ public class PlayerData : NetworkBehaviour
             Health = maxHealth;
             Dead = false;
             WeaponIndex = 0;
-            PlayerColorIndex = PlayerPrefs.GetInt("PlayerColor");
         }
+
+        if (Object.HasInputAuthority)
+        {
+            int colorIndex = PlayerPrefs.GetInt("PlayerColor");
+
+            if (Object.HasStateAuthority)
+            {
+                // Host: set directly, no RPC needed
+                PlayerColorIndex = colorIndex;
+            }
+            else
+            {
+                // Client: send to host to set authoritatively, Fusion syncs to everyone
+                RPC_SetPlayerColor(colorIndex);
+            }
+        }
+
         TryAssignTagAndLayer();
         if (hitCollision != null) hitCollision.SetActive(!Object.HasInputAuthority);
 
@@ -72,6 +88,12 @@ public class PlayerData : NetworkBehaviour
             fovMaskObject.SetActive(false);
             healthUIParent.SetActive(false);
         }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_SetPlayerColor(int colorIndex)
+    {
+        PlayerColorIndex = colorIndex;
     }
 
     public override void FixedUpdateNetwork()
